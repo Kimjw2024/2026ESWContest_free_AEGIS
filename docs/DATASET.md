@@ -78,6 +78,31 @@ The detector and classifier are related but do not use an identical sample repre
 
 The raw corpus is not committed because of size and source-management constraints. The repository preserves code, class definitions, summary counts, final metrics and representative evidence.
 
-## 5. Limitation
+## 5. Source Provenance & Redistribution Control
+
+The public contest repository **does not redistribute the 13 GB raw image corpus**.
+
+For every external source batch, the team must retain an internal source ledger containing:
+
+| Required field | Purpose |
+|---|---|
+| Provider / dataset name | identify the original source |
+| Source URL or archive ID | trace the exact batch |
+| Acquisition date | preserve version context |
+| License / terms of use | verify training and redistribution conditions |
+| Redistribution allowed? | decide whether raw images may be published |
+| Local batch / class mapping | connect source records to curated outputs |
+| Team edits | record relabeling, crop, exclusion and hard-negative processing |
+
+Before final Public submission:
+
+- verify that every non-self-captured external batch has a recorded source and usage condition
+- do not upload raw images whose redistribution permission is unclear
+- keep source-specific records in the Master Archive if they contain local paths or non-public acquisition metadata
+- cite public datasets/providers in the report or repository when their terms require attribution
+
+The current repository alone does not prove the license of every original image; that verification remains a team-controlled source-management task.
+
+## 6. Limitation
 
 The dataset is a research/competition prototype and does not fully represent every airport, weather, altitude, sensor and background distribution. Offline metrics must not be presented as certified field performance.

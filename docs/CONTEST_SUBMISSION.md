@@ -1,71 +1,62 @@
 # 2026 임베디드SW경진대회 소스코드 제출 체크리스트
 
-이 문서는 **자유공모 부문 공식 안내**와 **2026 소스코드 제출 방법**에 맞춰 AEGIS GitHub 제출 상태를 고정하기 위한 체크리스트다.
-
-## 필수 GitHub 설정
+## 1. Final Repository Identity
 
 - Repository name: `2026ESWContest_free_AEGIS`
-- Visibility: **Public**
 - Default branch: `main`
-- 제출 URL: `https://github.com/tigerjueun/2026ESWContest_free_AEGIS`
-- 제출 후 심사가 끝날 때까지 Repository 주소를 변경하지 않는다.
-- 수상 시 대회 종료 후에도 주소와 Public 상태를 유지한다.
+- Final URL: `https://github.com/tigerjueun/2026ESWContest_free_AEGIS`
+- Final submission visibility: **Public**
 
-## 제출 전 확인
+팀 내부 검토 기간에는 Private + Collaborator를 사용할 수 있지만, **대회 제출 전에 반드시 Public으로 전환**하고 로그아웃 상태에서 접근을 확인한다.
 
-- [ ] Repository 이름이 `2026ESWContest_free_AEGIS`인가
-- [ ] Visibility가 Public인가
-- [ ] 로그아웃/시크릿 창에서 README와 코드가 열리는가
+## 2. Canonical System Claim
+
+- Full system: **2 Raspberry Pi / 4 Camera**
+- Full runtime: direct ZMQ/JPEG `:5555`
+- Full profile: `640×360 @ 30 FPS, Q70`
+- Calibration: `1280×720 @ 20 FPS, Q76`
+- Simplified demo: `1 RPi / 2 Camera / RAW TCP :5560 / 20 FPS / Q60`
+
+README·PPT·영상에서 Full 4CH와 Simplified 2CH를 혼용하지 않는다.
+
+## 3. Submission Checklist
+
+- [ ] repository 이름이 최종 형식인가
+- [ ] 제출 직전 visibility가 Public인가
+- [ ] 시크릿 창에서 README·코드·이미지가 열리는가
 - [ ] `main`이 최종 제출 버전인가
-- [ ] README에 프로젝트 구조·실행법·정량 결과·팀 역할이 있는가
-- [ ] 소스코드/모델/Calibration 파일 링크가 깨지지 않았는가
-- [ ] 개인정보, API Key, 비밀번호, 로컬 사용자 경로가 공개본에 없는가
-- [ ] 개발완료보고서의 GitHub URL이 최종 Repository 주소와 동일한가
-- [ ] 홈페이지/구글폼의 소스코드 URL이 최종 Repository 주소와 동일한가
+- [ ] `START_HERE_KO.md` clone URL이 최종 주소인가
+- [ ] `git lfs pull` 후 `.pt` / `.npz` 원본이 내려오는가
+- [ ] `demo_preflight.ps1 -Mode full4ch`가 통과하는가
+- [ ] RPi #1이 logical camera 0/1을 송신하는가
+- [ ] RPi #2가 logical camera 2/3을 송신하는가
+- [ ] README에 Full 4CH / 2CH Demo mode 차이가 명시되었는가
+- [ ] PyTorch/torchvision/Pillow 설치 절차가 문서화되었는가
+- [ ] 외부 데이터 source ledger와 이용조건을 내부 확인했는가
+- [ ] 개인정보·API Key·비밀번호·로컬 경로가 없는가
+- [ ] PPT/홈페이지/중우 공유 링크가 동일한 최종 URL인가
 
-## AEGIS 공개 범위
+## 4. Fresh Clone Verification
 
-### Runtime source
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify_release_clone.ps1 -KeepClone
+```
 
-- `runtime/fusion_pc/`
-  - Multi-camera Fusion
-  - 3D triangulation / tracking
-  - AI Decision Console
-  - ResNet classifier
-  - Risk/response engine
-  - Turret server and calibration
-- `runtime/raspberry_pi/`
-  - camera sender / transport
-- `firmware/arduino_uno/`
-  - Dual Pan-Tilt Arduino firmware
+Fresh clone에서 Python 환경을 설치한 뒤:
 
-### Training / evaluation source
+```powershell
+cd runtime\fusion_pc
+powershell -ExecutionPolicy Bypass -File .\demo_preflight.ps1 -Mode full4ch
+```
 
-- `training/`
-  - dataset audit / preparation
-  - custom YOLO training
-  - ResNet-18 training
-- `results/`
-  - final YOLO/ResNet graphs, CSV, JSON
-- `calibration/`
-  - 4 camera intrinsics
-  - 6 stereo-pair calibration files
+## 5. Freeze Policy
 
-### Documentation
+제출 URL 입력 후에는 다음을 하지 않는다.
 
-- `README.md`
-- `START_HERE_KO.md`
-- `TEAM.md`
-- `docs/`
-
-## 제출 직후 고정 원칙
-
-제출 URL을 홈페이지/보고서에 입력한 뒤에는 다음 작업을 하지 않는다.
-
-- Repository rename
+- repository rename
 - Private 전환
 - default branch 변경
-- 제출 당시의 핵심 코드/README 삭제
-- force push로 제출 commit history를 재작성
+- 핵심 코드·README 삭제
+- force push로 제출 history 재작성
 
-필요한 수정은 기존 URL과 `main`을 유지한 일반 commit으로만 추가한다.
+필요한 수정은 같은 URL과 `main`을 유지하는 일반 commit으로만 추가한다.

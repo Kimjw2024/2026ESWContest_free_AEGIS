@@ -2,18 +2,28 @@
 
 본 문서는 임베디드SW경진대회 보고서·PPT·README에서 사용할 정량 수치와 해석 범위를 고정한다.
 
-## 1. 시스템 구성
+## 1. System and Runtime Modes
 
-| 항목 | 값 |
+Canonical system:
+
+| Item | Value |
 |---|---:|
 | Camera | IMX219 × 4 |
-| Raspberry Pi | 2대 / 4CH 구성 이력, current RAW-TCP demo path 별도 제공 |
+| Raspberry Pi | **2대 / 각 2CH** |
 | Stereo pair | 6개: 01, 02, 03, 12, 13, 23 |
 | Measured adjacent spacing | 149 / 151 / 149 mm |
 | Outer baseline | 약 449 mm |
-| Calibration stream | 1280×720 · 20 FPS · JPEG Q76 |
-| Runtime stream | 640×360 · 30 FPS · JPEG Q70 |
 | Response actuator | Dual Pan-Tilt turret |
+
+Mode separation:
+
+| Mode | Camera / RPi | Transport | Profile | Claim Scope |
+|---|---|---|---|---|
+| **Full 4CH Runtime** | 4CH / 2 RPi | direct ZMQ/JPEG `:5555` | 640×360 @ 30 FPS, Q70 | 전체 AEGIS system |
+| **Simplified 2CH Demo** | 2CH / 1 RPi | RAW TCP `:5560` → ZMQ | 640×360 @ 20 FPS, Q60 | 축소 데모·백업 |
+| **4CH Calibration** | 4CH / 2 RPi | direct ZMQ/JPEG `:5555` | 1280×720 @ 20 FPS, Q76 | 4 intrinsics / 6 pairs |
+
+Full 4CH 수치와 2CH demo 수치를 섞어 표기하지 않는다.
 
 ## 2. Camera Calibration
 
@@ -116,7 +126,7 @@ Runtime stability gate:
 Version note:
 
 - competition-deck verification snapshot: `max_lead_dist = 0.22 m`
-- current public release safety preset: `max_lead_dist = 0.0`, `command_lead_ratio = 0.0`
+- current release safety preset: `max_lead_dist = 0.0`, `command_lead_ratio = 0.0`
 
 ## 7. AI Decision Console
 
@@ -144,6 +154,6 @@ Output:
 
 ## 8. Core Claim
 
-> AEGIS는 조류 검출, 8-class 분류, Multi-Camera 3D 위치추정, 시계열 추적, 설명 가능한 위험도 판단과 물리 대응을 하나의 실시간 파이프라인으로 통합한다.
+> AEGIS는 **2 Raspberry Pi / 4 Camera**의 분산 영상 입력, 6-pair 3D 위치추정, 시계열 추적, 조류군 분류, 설명 가능한 위험도 판단과 물리 대응을 하나의 실시간 파이프라인으로 통합한다.
 
 > Problem → Perception → Localization → Tracking → Decision → Response

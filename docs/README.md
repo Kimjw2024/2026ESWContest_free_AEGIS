@@ -6,46 +6,43 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 
 | 문서 | 내용 |
 |---|---|
-| [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) | 전체 파일 트리, 핵심 파일 책임, canonical/runtime copy, evidence path |
-| [OPERATION_FLOW.md](OPERATION_FLOW.md) | Boot부터 detection·3D·AI·Risk·Turret까지 운용 상태와 안전 전이 |
-| [RUNBOOK.md](RUNBOOK.md) | 설치, 실행 순서, firewall, network, COM, preflight |
+| [RUNTIME_MODES.md](RUNTIME_MODES.md) | Full 4CH / Simplified 2CH / Calibration mode 구분 |
+| [RUNBOOK.md](RUNBOOK.md) | 설치, 2-RPi/4CH 실행, firewall, COM, preflight |
+| [OPERATION_FLOW.md](OPERATION_FLOW.md) | 입력부터 안전 복귀까지 운용 상태 |
+| [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) | file-level responsibility map |
 
 ## Competition / Submission
 
 | 문서 | 내용 |
 |---|---|
-| [CONTEST_SUBMISSION.md](CONTEST_SUBMISSION.md) | 2026 임베디드SW경진대회 GitHub 이름·Public·URL 유지·제출 전 체크리스트 |
-| [PROVENANCE_AND_IMPROVEMENTS.md](PROVENANCE_AND_IMPROVEMENTS.md) | 기존 HSV/3D baseline과 2026 대회 준비 과정의 개선·추가 사항 구분 |
-| [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | OpenCV·PyTorch·Ultralytics·PySide6 등 외부 의존성 및 라이선스 주의사항 |
+| [CONTEST_SUBMISSION.md](CONTEST_SUBMISSION.md) | GitHub 이름·Public·URL 유지·fresh clone 체크 |
+| [PROVENANCE_AND_IMPROVEMENTS.md](PROVENANCE_AND_IMPROVEMENTS.md) | 기존 HSV/3D baseline과 2026 고도화 구분 |
+| [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | 외부 의존성 및 라이선스 주의사항 |
 
 ## Core Design
 
 | 문서 | 내용 |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | End-to-End pipeline, module interface, 3D tracking and response architecture |
-| [HARDWARE_AND_CAD.md](HARDWARE_AND_CAD.md) | A/B 감시 개념, CAD·기구 reference, 카메라·터렛 배치 |
-| [CAMERA_CALIBRATION.md](CAMERA_CALIBRATION.md) | 4 intrinsics, 6 stereo pair, 품질 gate, triangulation 기준 |
-| [TURRET_CALIBRATION.md](TURRET_CALIBRATION.md) | inverse kinematics, laser offset, 22-point 실측 보정, override |
-| [AI_PIPELINE.md](AI_PIPELINE.md) | dataset, YOLO, ResNet, quality gate, temporal vote, risk/response pipeline |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 2-RPi / 4-Camera End-to-End architecture |
+| [HARDWARE_AND_CAD.md](HARDWARE_AND_CAD.md) | A/B 감시 개념, CAD·기구 reference |
+| [CAMERA_CALIBRATION.md](CAMERA_CALIBRATION.md) | 4 intrinsics, 6 stereo pair, quality gate |
+| [TURRET_CALIBRATION.md](TURRET_CALIBRATION.md) | IK, laser offset, 22-point calibration |
+| [PROTOCOLS.md](PROTOCOLS.md) | Full 4CH direct ZMQ와 2CH RAW-TCP demo |
+| [VALIDATION_AND_ROBUSTNESS.md](VALIDATION_AND_ROBUSTNESS.md) | 장애요인, tracking·safety preset |
 
-## AI Evidence
-
-| 문서 | 내용 |
-|---|---|
-| [AI_RESULTS.md](AI_RESULTS.md) | YOLO/ResNet 수치, 학습곡선, confidence curve, confusion matrix, class별 Precision/Recall/F1, Risk weight |
-| [DATASET.md](DATASET.md) | 원천 규모, class-wise count, contamination audit, split |
-| [`results/README.md`](../results/README.md) | 최종 선택 run의 raw graph·CSV·JSON evidence index |
-
-## Operation & System Evidence
+## AI & Dataset Evidence
 
 | 문서 | 내용 |
 |---|---|
-| [PROTOCOLS.md](PROTOCOLS.md) | RPi packet, ZMQ/RAW TCP, ports, Arduino command |
-| [VALIDATION_AND_ROBUSTNESS.md](VALIDATION_AND_ROBUSTNESS.md) | 장애요인, 계층별 해결, tracking·safety preset |
-| [METRICS.md](METRICS.md) | calibration, depth sensitivity, turret, YOLO, ResNet 정량 결과와 claim 범위 |
-| [SAFETY_AND_LIMITATIONS.md](SAFETY_AND_LIMITATIONS.md) | laser·actuation 안전, 데이터·모델·현장 한계 |
+| [AI_PIPELINE.md](AI_PIPELINE.md) | dataset, YOLO, ResNet, gate, vote, risk |
+| [AI_RESULTS.md](AI_RESULTS.md) | graph, confusion matrix, class별 P/R/F1 |
+| [DATASET.md](DATASET.md) | 규모, audit, split, source-provenance policy |
+| [METRICS.md](METRICS.md) | 수치와 claim 범위 |
+| [`results/README.md`](../results/README.md) | raw graph·CSV·JSON evidence index |
 
-## Team
+## Safety / Team
 
-- [TEAM.md](../TEAM.md): **김중우 — SYSTEM · 3D VISION · CONTROL / 박주은 — AI · DATASET · DECISION / 공동 수행 — 통합·검증·제출**
-- 박주은 AI 역할에는 dataset audit, YOLO/ResNet 학습·평가, Runtime gate, temporal voting, Risk/Response, AI Console 검증, 그래프·표·GitHub evidence release가 포함된다.
+| 문서 | 내용 |
+|---|---|
+| [SAFETY_AND_LIMITATIONS.md](SAFETY_AND_LIMITATIONS.md) | laser·field·model 한계 |
+| [TEAM.md](../TEAM.md) | 김중우 / 박주은 / 공동 수행 역할 |
