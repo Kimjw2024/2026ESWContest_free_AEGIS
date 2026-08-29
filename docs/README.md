@@ -2,6 +2,14 @@
 
 AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분리되어 있다.
 
+## Start Here
+
+| 문서 | 내용 |
+|---|---|
+| [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) | 전체 파일 트리, 핵심 파일 책임, canonical/runtime copy, evidence path |
+| [OPERATION_FLOW.md](OPERATION_FLOW.md) | Boot부터 detection·3D·AI·Risk·Turret까지 운용 상태와 안전 전이 |
+| [RUNBOOK.md](RUNBOOK.md) | 설치, 실행 순서, firewall, network, COM, preflight |
+
 ## Competition / Submission
 
 | 문서 | 내용 |
@@ -35,7 +43,6 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 | [PROTOCOLS.md](PROTOCOLS.md) | RPi packet, ZMQ/RAW TCP, ports, Arduino command |
 | [VALIDATION_AND_ROBUSTNESS.md](VALIDATION_AND_ROBUSTNESS.md) | 장애요인, 계층별 해결, tracking·safety preset |
 | [METRICS.md](METRICS.md) | calibration, depth sensitivity, turret, YOLO, ResNet 정량 결과와 claim 범위 |
-| [RUNBOOK.md](RUNBOOK.md) | 설치, 실행 순서, firewall, network, COM, preflight |
 | [SAFETY_AND_LIMITATIONS.md](SAFETY_AND_LIMITATIONS.md) | laser·actuation 안전, 데이터·모델·현장 한계 |
 
 ## Team
