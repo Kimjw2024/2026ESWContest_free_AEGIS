@@ -64,19 +64,19 @@ AEGIS는 카메라 입력부터 조류 인식, 3차원 위치추정, 시계열 �
 
 ```mermaid
 flowchart LR
-    A[IMX219 Camera ×4] --> B[Raspberry Pi Sender Node(s)]
-    B --> C[Wired Ethernet · JPEG/ZMQ or RAW TCP]
-    C --> D[YOLO Bird Detection]
-    D --> E[6 Stereo Pair Triangulation]
-    E --> F[Robust Multi-Baseline 3D Fusion]
-    F --> G[LPF · Kalman · Velocity · Track Hold]
-    D --> H[ResNet-18 8-Class Classification]
-    G --> I[Explainable Risk Assessment]
+    A["IMX219 Camera x4"] --> B["Raspberry Pi Sender Nodes"]
+    B --> C["Wired Ethernet / JPEG-ZMQ / RAW TCP"]
+    C --> D["YOLO Bird Detection"]
+    D --> E["6 Stereo-Pair Triangulation"]
+    E --> F["Robust Multi-Baseline 3D Fusion"]
+    F --> G["LPF / Kalman / Velocity / Track Hold"]
+    D --> H["ResNet-18 8-Class Classification"]
+    G --> I["Explainable Risk Assessment"]
     H --> I
-    I --> J[AI Decision Console]
-    I --> K[Inverse Kinematics · Safety Gate]
-    K --> L[Arduino Dual Pan-Tilt]
-    I -. Extension .-> M[Mobile Acoustic Prototype]
+    I --> J["AI Decision Console"]
+    I --> K["Inverse Kinematics / Safety Gate"]
+    K --> L["Arduino Dual Pan-Tilt"]
+    I -.-> M["Mobile Acoustic Prototype"]
 ```
 
 ### 실제 운용 8단계
