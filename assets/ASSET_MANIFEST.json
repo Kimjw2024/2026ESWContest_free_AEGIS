@@ -1,0 +1,86 @@
+[
+  {
+    "repository_path": "assets/ai_console/crow_result.png",
+    "master_source": "09_RESULTS_EVIDENCE/09_AICONSOLE_CROW.png"
+  },
+  {
+    "repository_path": "assets/ai_console/decision_console.png",
+    "master_source": "09_RESULTS_EVIDENCE/07_AI_CONSOLE.png"
+  },
+  {
+    "repository_path": "assets/ai_console/pigeon_result.png",
+    "master_source": "09_RESULTS_EVIDENCE/09_AICONSOLE_PIGEON.png"
+  },
+  {
+    "repository_path": "assets/dataset/dataset_candidate_review.png",
+    "master_source": "07_DEEP_LEARNING/TRAINING_PC_FULL_bird_project/dataset_candidate_review_8classes.png"
+  },
+  {
+    "repository_path": "assets/dataset/dataset_management.png",
+    "master_source": "09_RESULTS_EVIDENCE/08_YOLO_DATASET1.png"
+  },
+  {
+    "repository_path": "assets/hardware/calibration_setup.png",
+    "master_source": "09_RESULTS_EVIDENCE/03_calibration.png"
+  },
+  {
+    "repository_path": "assets/hardware/hardware_design.png",
+    "master_source": "02_HARDWARE/photo_2.0/03_HW_A&B.jpg"
+  },
+  {
+    "repository_path": "assets/hardware/rc_car_acoustic_prototype.jpg",
+    "master_source": "02_HARDWARE/photo_2.0/04_HW_RC_CAR_BASE.jpg"
+  },
+  {
+    "repository_path": "assets/system/hsv_baseline.png",
+    "master_source": "09_RESULTS_EVIDENCE/04_HSV_TEST.png"
+  },
+  {
+    "repository_path": "assets/system/system_overview.png",
+    "master_source": "09_RESULTS_EVIDENCE/05_bird_tracking.png"
+  },
+  {
+    "repository_path": "results/resnet/confusion_matrix.png",
+    "master_source": "07_DEEP_LEARNING/ResNet/resnet18_bird_v2_stable/confusion_matrix.png"
+  },
+  {
+    "repository_path": "results/resnet/history.csv",
+    "master_source": "07_DEEP_LEARNING/ResNet/resnet18_bird_v2_stable/history.csv"
+  },
+  {
+    "repository_path": "results/resnet/test_summary.json",
+    "master_source": "07_DEEP_LEARNING/ResNet/resnet18_bird_v2_stable/test_summary.json"
+  },
+  {
+    "repository_path": "results/yolo/box_f1_curve.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/BoxF1_curve.png"
+  },
+  {
+    "repository_path": "results/yolo/box_precision_curve.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/BoxP_curve.png"
+  },
+  {
+    "repository_path": "results/yolo/box_recall_curve.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/BoxR_curve.png"
+  },
+  {
+    "repository_path": "results/yolo/confusion_matrix.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/confusion_matrix.png"
+  },
+  {
+    "repository_path": "results/yolo/confusion_matrix_normalized.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/confusion_matrix_normalized.png"
+  },
+  {
+    "repository_path": "results/yolo/labels.jpg",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/labels.jpg"
+  },
+  {
+    "repository_path": "results/yolo/results.csv",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/results.csv"
+  },
+  {
+    "repository_path": "results/yolo/training_curves.png",
+    "master_source": "07_DEEP_LEARNING/YOLO/aegis_bird_v2_final/results.png"
+  }
+]

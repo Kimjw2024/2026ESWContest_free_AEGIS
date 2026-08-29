@@ -1,0 +1,149 @@
+# AEGIS 정량 결과 및 표기 원칙
+
+본 문서는 임베디드SW경진대회 보고서·PPT·README에서 사용할 정량 수치와 해석 범위를 고정한다.
+
+## 1. 시스템 구성
+
+| 항목 | 값 |
+|---|---:|
+| Camera | IMX219 × 4 |
+| Raspberry Pi | 2대 / 4CH 구성 이력, current RAW-TCP demo path 별도 제공 |
+| Stereo pair | 6개: 01, 02, 03, 12, 13, 23 |
+| Measured adjacent spacing | 149 / 151 / 149 mm |
+| Outer baseline | 약 449 mm |
+| Calibration stream | 1280×720 · 20 FPS · JPEG Q76 |
+| Runtime stream | 640×360 · 30 FPS · JPEG Q70 |
+| Response actuator | Dual Pan-Tilt turret |
+
+## 2. Camera Calibration
+
+| 항목 | 결과 |
+|---|---:|
+| Single-camera calibration RMS | 0.154–0.181 px |
+| Six stereo-pair RMS | 0.217–0.289 px |
+
+### Depth Sensitivity Simulation
+
+조건: `Z = 2.2 m`, image-center perturbation `1 px`.
+
+| Baseline | Depth error P95 |
+|---:|---:|
+| 0.15 m | 95.3 mm |
+| 0.30 m | 49.2 mm |
+| 0.45 m | 33.1 mm |
+
+0.45 m baseline은 0.15 m 대비 depth sensitivity P95가 약 **65.3% 감소**하였다.
+
+> 이 결과는 1 px 중심 오차를 가정한 민감도 시뮬레이션이며 실제 공항 현장 절대 거리 오차를 의미하지 않는다.
+
+## 3. Turret Calibration
+
+| 항목 | 값 |
+|---|---:|
+| PT1 measured calibration samples | 22 points |
+| PT2 measured calibration samples | 22 points |
+| Pivot height | 0.1280 m |
+| Tilt arm length | 0.0410 m |
+| Laser Z offset | 0.012 m |
+| Final depth scale | `z_scale = 0.7611` |
+
+Development-report calibration comparison:
+
+| Metric | Reported improvement |
+|---|---:|
+| PT1 Pan MAE | 35.0% reduction |
+| PT1 Tilt MAE | 37.7% reduction |
+
+이 비율은 터렛 각도 보정 전후 비교이며 3D localization 정확도와 동일한 지표가 아니다.
+
+## 4. Custom YOLOv8s — Research Detector
+
+Held-Out Offline Test:
+
+| Metric | Value |
+|---|---:|
+| Precision | 96.4% |
+| Recall | 93.5% |
+| mAP@0.5 | 97.5% |
+| mAP@0.5:0.95 | 70.9% |
+
+Test split:
+
+- 1,325 images
+- 1,436 bird instances
+- 67 background images
+
+표기 원칙:
+
+- 반드시 **Held-Out Offline Test**라고 쓴다.
+- `mAP@0.5 97.5%`를 실시간 현장 정확도라고 표현하지 않는다.
+- Raspberry Pi 실환경 false positive를 관찰했으며 hard-negative mining과 field fine-tuning이 필요하다.
+
+## 5. ResNet-18 — 8-Class Bird Classifier
+
+Classes/groups:
+
+`crow / duck / egret / gull / pigeon / raptor / sparrow / swallow`
+
+| Metric | Value |
+|---|---:|
+| Test Accuracy | 94.76% |
+| Test Macro-F1 | 94.56% |
+| Best Validation Accuracy | 95.52% |
+| Best Validation Macro-F1 | 95.20% |
+
+Runtime stability gate:
+
+- minimum crop side: 48 px
+- Top-1 confidence ≥ 0.70
+- Top1–Top2 margin ≥ 0.15
+- temporal voting: 5 votes / recent 7
+- otherwise: `UNKNOWN`
+
+`raptor`는 단일 species가 아니므로 **8-class bird classification / 8개 조류군 분류**라고 표현한다.
+
+## 6. Tracking & Control Parameters
+
+| Parameter | Current value |
+|---|---:|
+| Critical distance | 1.5 m |
+| Maximum laser distance | 2.2 m |
+| Velocity LPF beta | 0.70 |
+| Track hold / drop | 0.30 / 1.00 s |
+| Servo minimum send interval | 0.015 s |
+| System-delay reference | 0.14 s |
+
+Version note:
+
+- competition-deck verification snapshot: `max_lead_dist = 0.22 m`
+- current public release safety preset: `max_lead_dist = 0.0`, `command_lead_ratio = 0.0`
+
+## 7. AI Decision Console
+
+Input:
+
+- live bird crop
+- species / confidence / stable vote
+- X / Y / Z
+- forward range
+- relative altitude signal
+- approaching / crossing / leaving
+- Fusion threat / track reliability
+
+Output:
+
+- Risk Score: 0–100
+- Risk Level: LOW / MEDIUM / HIGH / CRITICAL
+- Recommended Response
+
+표기 원칙:
+
+- Risk Engine은 별도 딥러닝 모델이 아니라 **Explainable Risk Assessment / Decision Support Algorithm**이다.
+- species-risk weight는 airport-certified biological risk model이 아닌 operational prototype rule set이다.
+- Y 값은 절대 해발고도가 아니라 **relative altitude signal**이다.
+
+## 8. Core Claim
+
+> AEGIS는 조류 검출, 8-class 분류, Multi-Camera 3D 위치추정, 시계열 추적, 설명 가능한 위험도 판단과 물리 대응을 하나의 실시간 파이프라인으로 통합한다.
+
+> Problem → Perception → Localization → Tracking → Decision → Response

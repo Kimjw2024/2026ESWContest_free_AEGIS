@@ -1,0 +1,80 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime/local config
+configs/*.local.yaml
+.env
+*.log
+
+# Generated outputs
+runs/
+outputs/
+artifacts/
+*.tmp
+
+# Dataset raw caches - keep README/manifests, not raw dumps by default
+/datasets/raw/**
+!/datasets/raw/**/.gitkeep
+!/datasets/raw/README.md
+/datasets/processed/**
+!/datasets/processed/**/.gitkeep
+/datasets/synthetic/**
+!/datasets/synthetic/**/.gitkeep
+
+# Experiment heavy files - keep folder structure and metrics/docs
+experiments/**/videos/*.mp4
+experiments/**/videos/*.avi
+experiments/**/videos/*.mov
+experiments/**/raw/**
+
+# Calibration raw images can be huge
+/data/calibration/raw_images/**
+!/data/calibration/raw_images/**/.gitkeep
+
+# Models may be stored via Git LFS, but ignore accidental training dumps
+/models/**/runs/
+/models/**/checkpoints/tmp/
+
+# Personal storage path
+configs/paths.local.yaml
+
+# AEGIS competition release hygiene
+*.bak
+*.bak_*
+*.bak-*
+*.WORKING*
+*WORKING*
+patch_*.py
+sender_PUSH_test.py
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.tmp
+
+# Private competition documents
+**/*통장*
+**/*주민등록*
+**/*개인정보*
+**/*동의서_제출본*

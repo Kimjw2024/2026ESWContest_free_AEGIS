@@ -1,0 +1,36 @@
+{
+  "schema": "aegis_turret_calibration_overrides_v1",
+  "prediction": {
+    "z_scale": 0.7611
+  },
+  "pt1": {
+    "pos_global": [
+      0.0758,
+      0.0,
+      -0.0869
+    ],
+    "dx_laser": 0.0,
+    "dz_laser": 0.012,
+    "h_pivot": 0.128,
+    "l_arm": 0.041,
+    "pan_trim": 4.0,
+    "tilt_trim": -5.8,
+    "axis_tilt": -0.81,
+    "axis_lean": 0.4
+  },
+  "pt2": {
+    "pos_global": [
+      0.3755,
+      0.0,
+      -0.0918
+    ],
+    "dx_laser": 0.0,
+    "dz_laser": 0.012,
+    "h_pivot": 0.128,
+    "l_arm": 0.041,
+    "pan_trim": 3.0,
+    "tilt_trim": -1.6,
+    "axis_tilt": 0.21,
+    "axis_lean": -5.8
+  }
+}

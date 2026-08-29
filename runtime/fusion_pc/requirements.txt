@@ -1,0 +1,9 @@
+# For RTX 4060 GPU acceleration on Windows, install CUDA PyTorch first:
+# python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+opencv-python
+numpy
+pyzmq
+pyserial
+scipy
+ultralytics
+PySide6
