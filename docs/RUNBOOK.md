@@ -1,36 +1,94 @@
-# Demo Runbook
+# AEGIS Deployment & Demo Runbook
 
-## 1. Windows Fusion PC
+## 1. Canonical System
+
+AEGIS의 기준 구성은 다음과 같다.
+
+```text
+Raspberry Pi #1 + Camera 0/1
+Raspberry Pi #2 + Camera 2/3
+        ↓ direct ZMQ/JPEG :5555
+Windows Fusion PC
+        ↓
+YOLO → 6 Stereo Pair → 3D Tracking → ResNet → Risk → Turret
+```
+
+Mode별 차이는 [`RUNTIME_MODES.md`](RUNTIME_MODES.md)를 따른다.
+
+## 2. Windows Fusion PC Installation
 
 Recommended: **Python 3.11**.
 
 ```powershell
+git clone https://github.com/tigerjueun/2026ESWContest_free_AEGIS.git
+cd 2026ESWContest_free_AEGIS
 git lfs install
 git lfs pull
+
 cd runtime\fusion_pc
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -r requirements.txt
-powershell -ExecutionPolicy Bypass -File .\demo_preflight.ps1
 ```
 
-Machine-specific settings:
+PyTorch와 torchvision은 PC의 CPU/CUDA 환경에 맞는 build를 먼저 설치한다.
+
+```text
+https://pytorch.org/get-started/locally/
+```
+
+이후:
+
+```powershell
+pip install -r requirements.txt
+python -c "import torch, torchvision, PIL; print(torch.__version__)"
+powershell -ExecutionPolicy Bypass -File .\demo_preflight.ps1 -Mode full4ch
+```
+
+## 3. Machine-Specific Settings
+
+Fusion PC IPv4:
 
 ```powershell
 Get-NetIPAddress -AddressFamily IPv4 |
   Where-Object {$_.AddressState -eq "Preferred"} |
   Select-Object InterfaceAlias,IPAddress
+```
 
+Arduino COM:
+
+```powershell
 Get-CimInstance Win32_SerialPort |
   Select-Object DeviceID,Description
 ```
 
-Allow Raspberry Pi TCP input in Administrator PowerShell:
+Update locally:
+
+- `runtime/fusion_pc/config_turret.py`
+  - Fusion PC IP placeholder
+  - Arduino COM
+- `runtime/fusion_pc/turret_calibration_overrides.json`
+  - current physical rig only
+- calibration NPZ
+  - current camera positions/focus/baseline only
+
+## 4. Windows Firewall
+
+Administrator PowerShell:
 
 ```powershell
+# Full 4CH direct ZMQ/JPEG input
 New-NetFirewallRule `
-  -DisplayName "AEGIS TCP 5560" `
+  -DisplayName "AEGIS Full 4CH ZMQ 5555" `
+  -Direction Inbound `
+  -Protocol TCP `
+  -LocalPort 5555 `
+  -Action Allow `
+  -Profile Any
+
+# Simplified 2CH RAW-TCP demo
+New-NetFirewallRule `
+  -DisplayName "AEGIS Demo TCP 5560" `
   -Direction Inbound `
   -Protocol TCP `
   -LocalPort 5560 `
@@ -38,50 +96,178 @@ New-NetFirewallRule `
   -Profile Any
 ```
 
-Start in separate terminals:
+## 5. Full 4CH Runtime
+
+### 5.1 Fusion PC
 
 ```powershell
-py -3.11 .\tcp_zmq_bridge.py
-py -3.11 .\5_final_fusion.py
-py -3.11 .\ai_decision_dashboard.py
-py -3.11 .\6_turret_server.py
+cd runtime\fusion_pc
+.\.venv\Scripts\Activate.ps1
+powershell -ExecutionPolicy Bypass -File .\demo_start_windows.ps1 -Mode full4ch
 ```
 
-## 2. Raspberry Pi
+Full 4CH는 다음 세 프로그램을 실행한다.
+
+```text
+5_final_fusion.py
+ai_decision_dashboard.py
+6_turret_server.py
+```
+
+`tcp_zmq_bridge.py`는 Full 4CH에서 실행하지 않는다.
+
+### 5.2 Raspberry Pi #1
 
 ```bash
-python3 runtime/raspberry_pi/sender_TCP_5560.py \
-  --profile runtime \
-  --laptop-ip <FUSION_PC_IP> \
-  --port 5560 \
-  --width 640 \
-  --height 360 \
-  --fps 20 \
-  --jpeg-quality 60 \
-  --rotation 180 \
-  --left-logical-id 0 \
-  --right-logical-id 1 \
-  --stats-interval 2
+cd 2026ESWContest_free_AEGIS
+bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> runtime
 ```
 
-For the historical two-Pi / four-camera path, use `sender_FIXED_2.py` for logical cameras 0–1 and `sender2_FIXED_2.py` for 2–3.
+Expected:
 
-## 3. Preflight
+```text
+sender_id = rpi1
+physical CSI0/1 → logical camera 0/1
+640×360 @ 30 FPS
+JPEG Q70
+ZMQ/JPEG → Fusion PC :5555
+```
 
-- [ ] Raspberry Pi detects the expected IMX219 cameras
-- [ ] Pi can reach the Fusion PC IPv4
-- [ ] bridge is listening before sender launch
-- [ ] YOLO26n and ResNet-18 weights were pulled through Git LFS
-- [ ] calibration rig geometry has not moved
-- [ ] Arduino COM port and trim values are correct
-- [ ] laser output follows the venue safety policy
+### 5.3 Raspberry Pi #2
 
-## 4. Ports
+```bash
+cd 2026ESWContest_free_AEGIS
+bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> runtime
+```
 
-| Port | Purpose |
-|---:|---|
-| 5560 | Raspberry Pi RAW TCP image stream |
-| 5555 | Fusion video input after bridge |
-| 5556 | Turret target/result |
-| 5557 | Dashboard result PUB |
-| 5558 | Dashboard command |
+Expected:
+
+```text
+sender_id = rpi2
+physical CSI0/1 → logical camera 2/3
+640×360 @ 30 FPS
+JPEG Q70
+ZMQ/JPEG → Fusion PC :5555
+```
+
+### 5.4 Full 4CH Validation
+
+Fusion UI에서 확인:
+
+- `img0 / img1 / img2 / img3`
+- sender IDs `rpi1 / rpi2`
+- fresh timestamp and sequence
+- required pairs `01 / 12 / 23`
+- additional pairs `02 / 03 / 13`
+- Track3D lock
+- ResNet stable vote
+- AI Console risk/response
+- turret target packet
+
+## 6. 4CH Calibration
+
+Fusion PC에서 capture/calibration tool을 준비한 뒤:
+
+```bash
+# RPi #1
+bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> calibration
+
+# RPi #2
+bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> calibration
+```
+
+Expected profile:
+
+```text
+1280×720 @ 20 FPS
+JPEG Q76
+logical camera 0/1 and 2/3
+```
+
+Calibration sequence:
+
+```text
+4 single-camera intrinsics
+→ 6 stereo pairs: 01 / 02 / 03 / 12 / 13 / 23
+→ quality gate
+→ runtime coordinate scaling validation
+```
+
+## 7. Simplified 2CH Demo
+
+이 경로는 1-RPi / 2-Camera 축소 경로다.
+
+### Fusion PC
+
+```powershell
+cd runtime\fusion_pc
+.\.venv\Scripts\Activate.ps1
+powershell -ExecutionPolicy Bypass -File .\demo_start_windows.ps1 -Mode demo2ch
+```
+
+The launcher starts:
+
+```text
+tcp_zmq_bridge.py
+5_final_fusion.py
+ai_decision_dashboard.py
+6_turret_server.py
+```
+
+### Raspberry Pi
+
+```bash
+bash scripts/rpi_start_demo_2ch.sh <FUSION_PC_IP>
+```
+
+Expected:
+
+```text
+logical camera 0/1
+640×360 @ 20 FPS
+JPEG Q60
+RAW TCP :5560 → bridge → ZMQ :5555
+```
+
+이 모드는 Full 4CH 구조와 정량 주장을 대체하지 않는다.
+
+## 8. Ports
+
+| Port | Direction | Purpose |
+|---:|---|---|
+| 5555 | RPi → Fusion | Full 4CH direct ZMQ/JPEG input; demo bridge local output |
+| 5556 | Fusion → Turret | tracked target/result |
+| 5557 | Fusion → Console | Dashboard result PUB |
+| 5558 | Console → Runtime | UI/runtime command |
+| 5560 | RPi → Bridge | Simplified 2CH RAW-TCP input |
+| Serial 115200 | Turret server → Arduino | pan/tilt/laser command |
+
+## 9. Preflight Checklist
+
+- [ ] Repository clone URL is the final contest URL
+- [ ] `git lfs pull` completed
+- [ ] YOLO/ResNet `.pt` files are not pointer-sized
+- [ ] 4 intrinsics and 6 stereo-pair `.npz` files are loaded
+- [ ] PyTorch/torchvision/Pillow and `requirements.txt` modules import successfully
+- [ ] Both Raspberry Pis detect physical CSI camera 0 and 1
+- [ ] RPi #1 publishes logical camera 0/1
+- [ ] RPi #2 publishes logical camera 2/3
+- [ ] Fusion PC firewall allows TCP 5555
+- [ ] Arduino COM/baud and turret override match the current rig
+- [ ] camera/holder/baseline did not move after calibration
+- [ ] laser output follows venue safety policy
+
+## 10. Fresh Clone / Git LFS Verification
+
+From an external folder or another PC:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify_release_clone.ps1 -KeepClone
+```
+
+Then install the Python environment in that fresh clone and run:
+
+```powershell
+cd runtime\fusion_pc
+powershell -ExecutionPolicy Bypass -File .\demo_preflight.ps1 -Mode full4ch
+```

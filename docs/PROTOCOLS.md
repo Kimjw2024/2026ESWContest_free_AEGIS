@@ -1,94 +1,125 @@
 # Communication Protocols
 
-## 1. Network Flow
+## 1. Runtime Modes
 
-| Direction | Transport | Channel | Purpose |
-|---|---|---:|---|
-| Raspberry Pi → Fusion PC | RAW TCP | `5560` | current dual JPEG frame packet stream |
-| Bridge → Fusion | ZeroMQ | `5555` | Fusion camera packet contract |
-| Fusion → Turret server | ZeroMQ | `5556` | tracked 3D target/result |
-| Fusion → Decision Console | ZeroMQ PUB | `5557` | crop, class, XYZ, motion, evidence |
-| Console → Runtime | ZeroMQ command | `5558` | UI/runtime command channel |
-| Turret server → Arduino | USB Serial | machine-specific COM | PT1/PT2 pan, tilt, laser command |
+| Mode | Camera / RPi | Input Transport | Stream |
+|---|---|---|---|
+| **Full 4CH AEGIS Runtime** | 4 Camera / 2 RPi | direct ZMQ/JPEG → `:5555` | 640×360 @ 30 FPS, Q70 |
+| **Simplified 2CH Demo** | 2 Camera / 1 RPi | RAW TCP `:5560` → bridge → local ZMQ `:5555` | 640×360 @ 20 FPS, Q60 |
+| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG → `:5555` | 1280×720 @ 20 FPS, Q76 |
 
-## 2. Four-Channel Capture Topology
+## 2. Full Four-Channel Topology
 
 ```text
 Raspberry Pi #1
   sender_id = rpi1
-  logical camera = img0 / img1
-
+  physical CSI0/1 → logical img0 / img1
+  sender_FIXED_2.py
+        \
+         \ ZMQ/JPEG tcp://<FUSION_PC_IP>:5555
+         /
 Raspberry Pi #2
   sender_id = rpi2
-  logical camera = img2 / img3
+  physical CSI0/1 → logical img2 / img3
+  sender2_FIXED_2.py
 ```
 
-Historical two-Pi sender files:
+Launcher:
 
-- `runtime/raspberry_pi/sender_FIXED_2.py` — logical camera 0–1
-- `runtime/raspberry_pi/sender2_FIXED_2.py` — logical camera 2–3
+```bash
+bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> runtime
+bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> runtime
+```
 
-Current single-Pi RAW-TCP path:
+The Fusion PC binds the video input endpoint. `tcp_zmq_bridge.py` is not part of the Full 4CH path.
 
-- `runtime/raspberry_pi/sender_TCP_5560.py`
-- `runtime/fusion_pc/tcp_zmq_bridge.py`
-
-## 3. Packet Fields
-
-Conceptual packet structure:
+## 3. Simplified Two-Channel Demo
 
 ```text
-id · sender_id · capture_ts · seq · logical_camera_id · jpeg_payload
+1 Raspberry Pi / logical img0 + img1
+        ↓ RAW TCP :5560
+tcp_zmq_bridge.py
+        ↓ local ZMQ :5555
+Fusion
 ```
 
-For a dual-camera sender, the packet preserves both images and their timing metadata. The bridge preserves logical camera IDs so pair construction is independent of physical receive order.
+Launcher:
 
-## 4. Capture Profiles
+```bash
+bash scripts/rpi_start_demo_2ch.sh <FUSION_PC_IP>
+```
 
-| Profile | Resolution | FPS | JPEG | Purpose |
-|---|---:|---:|---:|---|
-| Calibration | 1280×720 | 20 | Q76 | checkerboard corner accuracy and calibration capture |
-| Runtime | 640×360 | 30 | Q70 | low-latency detection and tracking |
+This mode is a reduced reproduction path, not the canonical 4CH topology.
 
-The sensor mode reference is `2304:1296` with 180° rotation in the current rig.
+## 4. Conceptual Frame Packet
+
+```text
+id
+sender_id
+capture timestamp
+sequence
+profile
+width / height
+encoding / JPEG quality
+logical image payloads
+per-image timestamps
+pair time difference
+```
+
+A dual-camera sender transmits both physical CSI frames in one logical packet. Logical camera IDs decouple camera identity from packet arrival order.
 
 ## 5. Latest-First Policy
 
-AEGIS prioritizes the newest state over processing every queued frame.
+AEGIS prioritizes the newest physical state.
 
-- sender high-water mark: 1
-- receiver high-water mark: 2
+- sender SNDHWM: low queue depth
+- receiver RCVHWM: low queue depth
+- non-blocking sender
 - stale frame age check
-- pair timestamp window
-- soft time-weighting outside the ideal window
-- old serial command buffer clear before sending the newest command
+- hard/soft pair synchronization windows
+- old serial output buffer clear before latest command
+- ZMQ `CONFLATE=1` at turret target subscriber
 
-This prevents a system that is technically processing all frames but physically aiming at the past.
+This avoids aiming at queued historical frames.
 
-## 6. Arduino Command
+## 6. Port Map
 
-The UNO firmware receives a compact latest-command string carrying:
+| Direction | Transport | Channel | Purpose |
+|---|---|---:|---|
+| RPi #1/#2 → Fusion | ZMQ/JPEG | `5555` | Full 4CH camera packets |
+| Demo RPi → Bridge | RAW TCP | `5560` | Simplified 2CH packets |
+| Bridge → Fusion | local ZMQ | `5555` | Demo packet conversion |
+| Fusion → Turret server | ZeroMQ | `5556` | tracked 3D target/result |
+| Fusion → Decision Console | ZeroMQ PUB | `5557` | crop, class, XYZ, motion, evidence |
+| Console → Runtime | ZeroMQ command | `5558` | UI/runtime command |
+| Turret server → Arduino | USB Serial | `115200` | PT1/PT2 pan, tilt, laser |
+
+## 7. Arduino Command
+
+The UNO firmware receives:
 
 ```text
 PT1 pan · PT1 tilt · PT2 pan · PT2 tilt · laser1 · laser2
 ```
 
-The firmware uses:
+Safety/robustness:
 
 - non-blocking serial parser
 - latest-command buffer
-- command timeout/watchdog
-- servo and logical laser output
+- command watchdog
+- PC-side safe-angle clamp
+- spike clamp and smoothing
+- target hold/drop handling
+- laser keepalive and distance gate
 
-The Windows server performs geometry, trim, smoothing and safety limits before transmission.
+## 8. Deployment Rules
 
-## 7. Deployment Rule
-
-Repository defaults use documentation-safe placeholder network values. The operator must set:
+The public repository uses documentation-safe placeholder network values. The operator must set:
 
 - actual Fusion PC IPv4
-- Windows firewall rule for TCP 5560
+- firewall TCP 5555 for Full 4CH
+- firewall TCP 5560 for Simplified Demo
 - actual Arduino COM port
-- calibration file matching the physical rig
+- calibration/override matching the current rig
 
-Machine-specific secrets and absolute local paths are not committed.
+Credentials, private IP history and local absolute paths are not committed.
