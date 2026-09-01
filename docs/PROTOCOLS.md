@@ -4,9 +4,9 @@
 
 | Mode | Camera / RPi | Input Transport | Stream |
 |---|---|---|---|
-| **Full 4CH AEGIS Runtime** | 4 Camera / 2 RPi | direct ZMQ/JPEG → `:5555` | 640×360 @ 30 FPS, Q70 |
+| **Full 4CH AEGIS Runtime** | 4 Camera / 2 RPi | direct ZMQ/JPEG over IPv4 LAN → `:5555` | 640×360 @ 30 FPS, Q70 |
 | **Simplified 2CH Demo** | 2 Camera / 1 RPi | RAW TCP `:5560` → bridge → local ZMQ `:5555` | 640×360 @ 20 FPS, Q60 |
-| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG → `:5555` | 1280×720 @ 20 FPS, Q76 |
+| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG over IPv4 LAN → `:5555` | 1280×720 @ 20 FPS, Q76 |
 
 ## 2. Full Four-Channel Topology
 
@@ -31,7 +31,7 @@ bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> runtime
 bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> runtime
 ```
 
-The Fusion PC binds the video input endpoint. `tcp_zmq_bridge.py` is not part of the Full 4CH path.
+The Fusion PC binds the video input endpoint. `tcp_zmq_bridge.py` is not part of the Full 4CH path. RPi #1, RPi #2 and the Fusion PC only require mutually reachable IPv4 connectivity; wired LAN is recommended for long demos, while same-subnet Wi-Fi LAN uses the same direct-ZMQ protocol.
 
 ## 3. Simplified Two-Channel Demo
 
@@ -102,13 +102,29 @@ The UNO firmware receives:
 PT1 pan · PT1 tilt · PT2 pan · PT2 tilt · laser1 · laser2
 ```
 
+The current PC-side turret controller applies the following layers before serialization:
+
+```text
+Fusion XYZ
+→ inverse kinematics
+→ measured geometry/trim override
+→ axis correction
+→ direction-aware tilt backlash compensation
+→ adaptive EMA + deadband
+→ spike/safe-angle/distance gate
+→ latest serial command
+```
+
+Current final field-tuned downward compensation is `0.80°` for PT1 and `0.80°` for PT2; upward compensation is zero.
+
 Safety/robustness:
 
 - non-blocking serial parser
 - latest-command buffer
 - command watchdog
 - PC-side safe-angle clamp
-- spike clamp and smoothing
+- spike clamp and adaptive smoothing
+- direction-aware servo hysteresis compensation
 - target hold/drop handling
 - laser keepalive and distance gate
 
@@ -117,6 +133,7 @@ Safety/robustness:
 The public repository uses documentation-safe placeholder network values. The operator must set:
 
 - actual Fusion PC IPv4
+- mutually reachable LAN for both RPi nodes and Fusion
 - firewall TCP 5555 for Full 4CH
 - firewall TCP 5560 for Simplified Demo
 - actual Arduino COM port
