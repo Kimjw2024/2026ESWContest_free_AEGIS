@@ -7,7 +7,7 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 | 문서 | 내용 |
 |---|---|
 | [RUNTIME_MODES.md](RUNTIME_MODES.md) | Full 4CH / Simplified 2CH / Calibration mode 구분 |
-| [RUNBOOK.md](RUNBOOK.md) | 설치, 2-RPi/4CH 실행, firewall, COM, preflight |
+| [RUNBOOK.md](RUNBOOK.md) | 설치, 2-RPi/4CH 실행, LAN/firewall, COM, preflight |
 | [OPERATION_FLOW.md](OPERATION_FLOW.md) | 입력부터 안전 복귀까지 운용 상태 |
 | [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) | file-level responsibility map |
 
@@ -26,7 +26,7 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 2-RPi / 4-Camera End-to-End architecture |
 | [HARDWARE_AND_CAD.md](HARDWARE_AND_CAD.md) | A/B 감시 개념, CAD·기구 reference |
 | [CAMERA_CALIBRATION.md](CAMERA_CALIBRATION.md) | 4 intrinsics, 6 stereo pair, quality gate |
-| [TURRET_CALIBRATION.md](TURRET_CALIBRATION.md) | IK, laser offset, 22-point calibration |
+| [TURRET_CALIBRATION.md](TURRET_CALIBRATION.md) | IK, 20-point field recalibration, direction-aware backlash compensation |
 | [PROTOCOLS.md](PROTOCOLS.md) | Full 4CH direct ZMQ와 2CH RAW-TCP demo |
 | [VALIDATION_AND_ROBUSTNESS.md](VALIDATION_AND_ROBUSTNESS.md) | 장애요인, tracking·safety preset |
 
