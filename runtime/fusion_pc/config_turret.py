@@ -129,7 +129,7 @@ DETECTION = {
     "yolo_assignment": "tracking",
     "yolo_rect": True,
     "yolo_warmup": True,
-    "yolo_center_smooth_alpha": 0.30,
+    "yolo_center_smooth_alpha": 0.25,
     "yolo_center_max_jump_px": 120,
     "yolo_allow_mono_aim": False,
     "hsv_full_resolution": False,
@@ -216,27 +216,27 @@ TURRET_HOLD = {
 # [서보 스무딩]
 SERVO_SMOOTH = {
     # 정지 상태에서는 노이즈 억제
-    "alpha": 0.30,
+    "alpha": 0.40,
 
     # MG995 / MG996R 기준 약 50Hz
-    "min_send_interval": 0.015,
-    "tick_hz": 67,
+    "min_send_interval": 0.020,
+    "tick_hz": 50,
     "poll_timeout_ms": 2,
 
     "clear_output_before_write": True,
 
     # 비정상적인 순간 좌표 점프 방지
-    "max_deg_per_frame": 5.0,
+    "max_deg_per_frame": 18.0,
 
     # threat에 의한 과격한 움직임 완화
     "threat_motion_boost": 0.15,
 
     # 큰 오차에서는 빠르게 따라감
-    "max_alpha": 0.72,
+    "max_alpha": 0.90,
 
     # Pan / Tilt 미세 떨림 억제
-    "pan_deadband": 0.04,
-    "tilt_deadband": 0.05,
+    "pan_deadband": 0.08,
+    "tilt_deadband": 0.10,
 
     # 실제 Arduino에 보내는 각도도 아주 작은 변화는 무시
     "output_deadband_deg": 0.12,
@@ -249,8 +249,8 @@ SERVO_SMOOTH = {
     "tilt_max_deg_scale": 0.90,
 
     # 1도 이상 오차가 생기면 빠르게 추종
-    "error_boost_deg": 0.60,
-    "error_boost_alpha": 0.28,
+    "error_boost_deg": 1.0,
+    "error_boost_alpha": 0.38,
 }
 
 
