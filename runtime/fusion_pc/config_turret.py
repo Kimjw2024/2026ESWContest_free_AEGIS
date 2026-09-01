@@ -250,7 +250,7 @@ SERVO_SMOOTH = {
 
     # 1도 이상 오차가 생기면 빠르게 추종
     "error_boost_deg": 1.0,
-    "error_boost_alpha": 0.38,
+    "error_boost_alpha": 0.15,
 }
 
 
