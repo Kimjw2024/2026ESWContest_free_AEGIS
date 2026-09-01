@@ -985,7 +985,6 @@ def yolo_detection_center(results, box, idx):
 
 def smooth_yolo_centers(cam_idx, centers):
     if not centers:
-        center_2d_state.setdefault(cam_idx, {}).clear()
         return {}
     if YOLO_CENTER_SMOOTH_ALPHA >= 0.999:
         return centers
@@ -996,7 +995,9 @@ def smooth_yolo_centers(cam_idx, centers):
         prev = state.get(lbl)
         if prev is not None and np.all(np.isfinite(prev)):
             jump = float(np.linalg.norm(curr - prev))
-            if jump <= YOLO_CENTER_MAX_JUMP_PX:
+            if jump > YOLO_CENTER_MAX_JUMP_PX:
+                curr = prev.copy()
+            else:
                 curr = prev * (1.0 - YOLO_CENTER_SMOOTH_ALPHA) + curr * YOLO_CENTER_SMOOTH_ALPHA
         state[lbl] = curr
         out[lbl] = (float(curr[0]), float(curr[1]))
