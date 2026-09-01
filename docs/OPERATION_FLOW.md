@@ -13,7 +13,7 @@
 2. **WAIT_STREAM**  
    Raspberry Pi sender가 IMX219 영상을 전송하고 Fusion PC가 최신 frame packet을 기다린다.
 3. **DETECT_2D**  
-   YOLO가 각 카메라 영상에서 bird bounding box와 중심점을 생성한다. HSV는 기하·통신 baseline 검증 모드로 유지된다.
+   YOLO가 각 카메라 영상에서 bird bounding box와 중심점을 생성한다. HSV는 기하·통신 baseline 및 turret calibration 검증 모드로 유지된다.
 4. **WAIT_STEREO_LOCK**  
    2D target은 있으나 유효한 stereo pair가 부족하면 물리 대응을 시작하지 않고 3D lock을 기다린다.
 5. **TRACK_3D**  
@@ -23,7 +23,7 @@
 7. **ASSESS_RISK**  
    거리, 접근 상태, 상대고도, 조류군 우선도, track 상태, Fusion threat를 결합해 Risk Score와 권장 대응을 생성한다.
 8. **RESPOND / HOLD / SAFE RETURN**  
-   유효 target만 터렛 서버로 전달하며, 짧은 유실은 hold, 장기 유실은 laser OFF와 점진적 home 복귀로 처리한다.
+   유효 target만 터렛 서버로 전달하며, measured IK와 방향성 backlash 보상을 적용한다. 짧은 유실은 hold, 장기 유실은 laser OFF와 점진적 home 복귀로 처리한다.
 
 ---
 
@@ -74,7 +74,7 @@ stateDiagram-v2
 | `TRACK_3D` | stereo pairs | filtered XYZ, velocity, threat | sync window, rectified-Y, position/speed gate |
 | `CLASSIFY` | target crop | raw/stable class | min crop 48 px, confidence 0.70, margin 0.15 |
 | `ASSESS_RISK` | class, XYZ, prediction, track | 0–100 score, level, response | UNKNOWN은 보수적 response로 fallback |
-| `RESPOND` | valid target packet | dual pan/tilt command | safe angles, distance gate, spike clamp, watchdog |
+| `RESPOND` | valid target packet | dual pan/tilt command | measured IK, direction compensation, safe angles, distance gate, spike clamp, watchdog |
 | `HOLD` | last valid track | short coast | Fusion hold 0.30 s, aim hold 0.20 s |
 | `SAFE_RETURN` | stale/drop event | laser OFF, home return | drop 1.00 s 이후 점진 복귀 |
 
@@ -91,6 +91,7 @@ stateDiagram-v2
 - minimum box area: `80 px²`
 - bbox center smoothing alpha: `0.75`
 - maximum center jump: `220 px`
+- HSV `Target_1`은 blue table-tennis ball calibration/debug target으로 사용 가능
 
 ### Multi-Camera Fusion
 
@@ -145,7 +146,7 @@ crop available
 
 ---
 
-## 7. Turret Safety State
+## 7. Turret Safety & Control State
 
 터렛 서버는 target packet을 바로 servo 출력으로 전달하지 않는다.
 
@@ -155,11 +156,24 @@ valid dictionary
 → status not IDLE/DROPPED
 → finite XYZ
 → inverse kinematics
+→ measured geometry/trim/axis override
+→ direction-aware tilt backlash compensation
+→ spike clamp
+→ adaptive EMA + pan/tilt deadband
 → pan/tilt safe-angle clamp
-→ EMA smoothing
-→ per-frame spike clamp
-→ serial latest-command write
+→ latest serial command write
 ```
+
+Current field-tuned control:
+
+- PT1 downward tilt compensation: `0.80°`
+- PT2 downward tilt compensation: `0.80°`
+- upward compensation: `0.00°`
+- base / max alpha: `0.40 / 0.90`
+- pan / tilt deadband: `0.08° / 0.10°`
+- servo minimum send interval: `0.020 s`
+- maximum angle step: `18°/frame`
+- downward response multiplier: `1.18`
 
 추가 안전 조건:
 
@@ -177,9 +191,9 @@ valid dictionary
 
 | Phase | Main implementation |
 |---|---|
-| Prefight | `runtime/fusion_pc/demo_preflight.ps1` |
-| Pi capture/transport | `runtime/raspberry_pi/sender_TCP_5560.py`, `sender_FIXED_2.py`, `sender2_FIXED_2.py` |
-| TCP→ZMQ bridge | `runtime/fusion_pc/tcp_zmq_bridge.py` |
+| Preflight | `runtime/fusion_pc/demo_preflight.ps1` |
+| Pi capture/transport | `runtime/raspberry_pi/sender_FIXED_2.py`, `sender2_FIXED_2.py`; `sender_TCP_5560.py` is demo-only |
+| TCP→ZMQ bridge | `runtime/fusion_pc/tcp_zmq_bridge.py` — simplified 2CH only |
 | Detection/3D/tracking | `runtime/fusion_pc/5_final_fusion_async.py` |
 | Species classification | `runtime/fusion_pc/aegis_species_classifier.py` |
 | Risk/response | `runtime/fusion_pc/aegis_decision_engine.py` |
