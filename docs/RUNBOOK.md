@@ -10,7 +10,7 @@ Raspberry Pi #2 + Camera 2/3
         ↓ direct ZMQ/JPEG :5555
 Windows Fusion PC
         ↓
-YOLO → 6 Stereo Pair → 3D Tracking → ResNet → Risk → Turret
+HSV / YOLO → 6 Stereo Pair → 3D Tracking → ResNet → Risk → Turret
 ```
 
 Mode별 차이는 [`RUNTIME_MODES.md`](RUNTIME_MODES.md)를 따른다.
@@ -65,12 +65,42 @@ Get-CimInstance Win32_SerialPort |
 Update locally:
 
 - `runtime/fusion_pc/config_turret.py`
-  - Fusion PC IP placeholder
+  - Fusion PC IP placeholder / environment override
   - Arduino COM
 - `runtime/fusion_pc/turret_calibration_overrides.json`
   - current physical rig only
+- `runtime/fusion_pc/calib_data.json`
+  - must belong to the same latest turret-calibration session as the override
 - calibration NPZ
   - current camera positions/focus/baseline only
+
+### Network requirement
+
+Full 4CH does not depend on a specific physical medium; it depends on **mutual IPv4 reachability** among the two RPi nodes and the Fusion PC.
+
+- contest / long-running demo: **wired LAN recommended**
+- integration / development: same-subnet Wi-Fi LAN is supported and has been validated with the final 2-RPi/4CH system
+- guest networks with client isolation can block RPi → Fusion TCP even when Internet access works
+- use the actual current Fusion PC IPv4 in both sender launch commands
+
+A quick RPi-side TCP test is preferable to ICMP ping when Windows or the venue network blocks ping:
+
+```bash
+python3 - <<'PY'
+import socket
+host = "<FUSION_PC_IP>"
+port = 5555
+s = socket.socket()
+s.settimeout(5)
+try:
+    s.connect((host, port))
+    print("TCP 5555 SUCCESS", host, port)
+except Exception as e:
+    print("TCP 5555 FAIL", repr(e))
+finally:
+    s.close()
+PY
+```
 
 ## 4. Windows Firewall
 
@@ -164,7 +194,15 @@ Fusion UI에서 확인:
 - AI Console risk/response
 - turret target packet
 
-## 6. 4CH Calibration
+Turret server에서 확인:
+
+- Arduino serial connected, not simulation mode
+- `lock / same_lock` state
+- live laser keepalive
+- no persistent spike-clamp events under normal motion
+- top-to-bottom tilt tracking uses the current direction-aware backlash compensation
+
+## 6. 4CH Camera Calibration
 
 Fusion PC에서 capture/calibration tool을 준비한 뒤:
 
@@ -193,7 +231,29 @@ Calibration sequence:
 → runtime coordinate scaling validation
 ```
 
-## 7. Simplified 2CH Demo
+## 7. Turret Recalibration
+
+Use this after a mechanical turret/camera relocation or when the current physical rig no longer matches the stored override.
+
+1. Keep both RPi senders and Fusion running.
+2. Switch Fusion to **HSV** for repeatable geometric targeting.
+3. Stop `6_turret_server.py` so that `calibration_turret.py` has exclusive Arduino access.
+4. Run:
+
+```powershell
+cd runtime\fusion_pc
+py -3.11 .\calibration_turret.py
+```
+
+5. Latest field procedure: **20 target positions per turret**, spread across horizontal/vertical position and depth.
+6. Current calibration/debug HSV target is the blue table-tennis ball configured in `config_turret.py`.
+7. Save and visually verify the generated result.
+8. Restart Fusion and turret server so the newly generated override is reloaded.
+9. Commit `calib_data.json` and `turret_calibration_overrides.json` together.
+
+The current runtime additionally applies field-tuned **0.80° downward tilt compensation to PT1 and PT2** to address repeatable top-to-bottom servo hysteresis. This is a runtime mechanical compensation layer, not a substitute for static multi-point calibration.
+
+## 8. Simplified 2CH Demo
 
 이 경로는 1-RPi / 2-Camera 축소 경로다.
 
@@ -231,7 +291,7 @@ RAW TCP :5560 → bridge → ZMQ :5555
 
 이 모드는 Full 4CH 구조와 정량 주장을 대체하지 않는다.
 
-## 8. Ports
+## 9. Ports
 
 | Port | Direction | Purpose |
 |---:|---|---|
@@ -242,7 +302,7 @@ RAW TCP :5560 → bridge → ZMQ :5555
 | 5560 | RPi → Bridge | Simplified 2CH RAW-TCP input |
 | Serial 115200 | Turret server → Arduino | pan/tilt/laser command |
 
-## 9. Preflight Checklist
+## 10. Preflight Checklist
 
 - [ ] Repository clone URL is the final contest URL
 - [ ] `git lfs pull` completed
@@ -252,12 +312,14 @@ RAW TCP :5560 → bridge → ZMQ :5555
 - [ ] Both Raspberry Pis detect physical CSI camera 0 and 1
 - [ ] RPi #1 publishes logical camera 0/1
 - [ ] RPi #2 publishes logical camera 2/3
+- [ ] RPi nodes can reach Fusion TCP 5555 on the selected LAN
 - [ ] Fusion PC firewall allows TCP 5555
 - [ ] Arduino COM/baud and turret override match the current rig
+- [ ] `calib_data.json` and `turret_calibration_overrides.json` are from the latest same calibration session
 - [ ] camera/holder/baseline did not move after calibration
 - [ ] laser output follows venue safety policy
 
-## 10. Fresh Clone / Git LFS Verification
+## 11. Fresh Clone / Git LFS Verification
 
 From an external folder or another PC:
 
