@@ -19,13 +19,7 @@ flowchart LR
         GEO["Rectification / 6-Pair Triangulation"]
         MF["Robust Multi-Baseline Fusion"]
         TRK["LPF / Kalman / Velocity / Hold"]
-        CLS["ResNet-18 / Gate / Temporal Vote"]
-        DEC["Explainable Risk Assessment"]
-        UI["AI Decision Console"]
-
-        RX --> DET --> GEO --> MF --> TRK --> DEC
-        DET --> CLS --> DEC
-        DEC --> UI
+        RX --> DET --> GEO --> MF --> TRK
     end
 
     subgraph RESPONSE["Response Layer"]
@@ -34,28 +28,37 @@ flowchart LR
         SAFE["Adaptive Smoothing / Safety Gate"]
         UNO["Arduino UNO"]
         PT["Dual Pan-Tilt"]
-        MOBILE["Mobile Acoustic Prototype"]
-
         IK --> COMP --> SAFE --> UNO --> PT
-        DEC -.-> MOBILE
     end
 
-    DEC --> IK
+    subgraph SUPPORT["Parallel Decision-Support Layer"]
+        CLS["ResNet-18 / Gate / Temporal Vote"]
+        DEC["Explainable Risk Assessment"]
+        UI["AI Decision Console"]
+        MOBILE["Mobile Acoustic Prototype"]
+        CLS --> DEC --> UI
+        DEC -.->|"recommendation only"| MOBILE
+    end
+
+    TRK -->|"Track3D target/result :5556"| IK
+    TRK -->|"dashboard snapshot :5557"| CLS
 ```
 
 The Full 4CH configuration uses two Raspberry Pis and four cameras. Both Pi nodes send direct ZMQ/JPEG packets to the Fusion PC over a mutually reachable IPv4 LAN. Wired LAN is recommended for sustained demonstrations; same-subnet Wi-Fi uses the same transport contract. The `tcp_zmq_bridge.py` path is reserved for the simplified 1-RPi / 2-camera RAW-TCP demo.
 
+The actuator and decision-support paths branch after Fusion tracking. The turret server subscribes directly to Track3D target/result packets on `:5556`; the Console uses a separate `:5557` snapshot for ResNet classification and risk display. Console output does not gate turret motion. Fusion reserves `:5558` as command input, but the current dashboard is read-only and does not publish commands.
+
 ## 2. Explicit Data Interfaces
 
 ```text
-FramePacket
-→ Detection2D
-→ StereoPairEstimate
-→ Track3D
-→ ClassificationResult
-→ DecisionResult
-→ TurretTarget
-→ ArduinoCommand
+Control: FramePacket → Detection2D → StereoPairEstimate → Track3D
+                     → TurretTarget (:5556) → ArduinoCommand
+
+Parallel support: dashboard snapshot (:5557) → ClassificationResult
+                                            → DecisionResult → AI Console
+
+Reserved: external command client → Fusion (:5558)
+          (not used by the current read-only dashboard)
 ```
 
 This separation lets capture, AI, geometry, UI and actuator modules be tested independently.
@@ -78,10 +81,11 @@ This separation lets capture, AI, geometry, UI and actuator modules be tested in
 | Camera Geometry | rectification, six-pair triangulation, pair validity | `5_final_fusion_async.py`, `runtime/fusion_pc/tools/` |
 | Multi-Pair Fusion | synchronization/reliability weighting and outlier handling | `5_final_fusion_async.py` |
 | Tracking | LPF, Kalman, velocity, temporary hold/drop | `5_final_fusion_async.py` |
-| Classification | ResNet-18, crop gate, confidence margin, temporal vote | `aegis_species_classifier.py` |
-| Decision | species·XYZ·motion·track evidence → score/response | `aegis_decision_engine.py` |
-| Interface | crop, class, XYZ, motion, risk, response | `ai_decision_dashboard.py` |
-| Turret Control | coordinate transform, IK, measured override, direction compensation, smoothing, safety, serial | `6_turret_server.py`, `calibration_turret.py` |
+| Track3D Publish | target/result → direct turret `:5556`; dashboard snapshot → `:5557` | `5_final_fusion_async.py` |
+| Classification | dashboard crop, ResNet-18 gate, confidence margin, temporal vote | `aegis_species_classifier.py` |
+| Decision Support | species·XYZ·motion·track evidence → score/recommendation | `aegis_decision_engine.py` |
+| Read-only Interface | subscribe `:5557`; display crop, class, XYZ, motion, risk, response | `ai_decision_dashboard.py` |
+| Turret Control | subscribe `:5556`; coordinate transform, IK, measured override, direction compensation, smoothing, safety, serial | `6_turret_server.py`, `calibration_turret.py` |
 | Firmware | latest-command parser, servo/laser watchdog | `firmware/arduino_uno/` |
 
 ## 5. Camera Geometry
@@ -109,7 +113,9 @@ Calibration `T` vectors are authoritative. `01/12/23` form the minimum connected
 - track state persists across frames
 - temporary loss enters hold/coast
 - ResNet `UNKNOWN` does not stop Track3D
-- turret output requires geometry, tracking and safety checks
+- turret output is driven directly by valid Track3D on `:5556` and requires geometry, tracking and safety checks
+- ResNet/risk/Console runs in parallel on `:5557` and does not gate actuator commands
+- `:5558` is reserved Fusion command input; the current dashboard does not send to it
 - static turret geometry calibration and dynamic servo-hysteresis compensation are separated
 - top-to-bottom tilt motion uses the final field-tuned `0.80°` correction on PT1/PT2
 - Full 4CH and simplified demo converge on the same downstream `FramePacket` contract

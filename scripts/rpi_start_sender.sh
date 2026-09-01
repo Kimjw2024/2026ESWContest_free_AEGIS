@@ -9,10 +9,10 @@ Usage:
   bash scripts/rpi_start_sender.sh <rpi1|rpi2> <FUSION_PC_IP> [runtime|calibration]
 
 Examples:
-  bash scripts/rpi_start_sender.sh rpi1 192.168.137.1 runtime
-  bash scripts/rpi_start_sender.sh rpi2 192.168.137.1 runtime
-  bash scripts/rpi_start_sender.sh rpi1 192.168.137.1 calibration
-  bash scripts/rpi_start_sender.sh rpi2 192.168.137.1 calibration
+  bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> runtime
+  bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> runtime
+  bash scripts/rpi_start_sender.sh rpi1 <FUSION_PC_IP> calibration
+  bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> calibration
 
 Canonical topology:
   rpi1 -> logical camera 0 / 1

@@ -32,19 +32,19 @@
 
 ## 1. 개발 배경과 목표
 
-공항의 Bird-Strike 대응은 단순히 새를 검출하는 것만으로 끝나지 않는다. **어떤 조류가 어디에 있고, 어느 방향으로 이동하며, 현재 얼마나 위험한지 판단한 뒤 물리 대응 장치까지 연결**해야 한다.
+공항의 Bird-Strike 대응은 단순히 새를 검출하는 것만으로 끝나지 않는다. **조류의 3D 위치와 이동을 안정적으로 추적해 물리 대응 장치가 따라가게 하고, 동시에 조류군과 위험도를 운용자에게 설명**할 수 있어야 한다.
 
 AEGIS는 분산 camera edge에서 시작해 조류 인식, 3차원 위치추정, 시계열 추적, 위험도 판단, 물리 대응까지 하나의 Embedded AI pipeline으로 통합한다.
 
-> **Problem → Perception → Localization → Tracking → Decision → Response**
+> **Problem → Perception → Localization → Tracking → Direct Response + Parallel Decision Support**
 
 | 단계 | 구현 내용 |
 |---|---|
 | Perception | YOLO 기반 조류 검출 + ResNet-18 8개 조류군 분류 |
 | Localization | 4대 카메라, 6개 Stereo Pair, Multi-Baseline 3D |
 | Tracking | LPF · Kalman · velocity estimation · track hold |
-| Decision | 조류군 · XYZ · 상대고도 · 접근 상태 · track evidence 기반 위험도 |
-| Response | Dual Pan-Tilt turret + Acoustic/RC-Car extension |
+| Decision Support | 조류군 · XYZ · 상대고도 · 접근 상태 · track evidence 기반 위험도와 권장 대응 표시 |
+| Response | Track3D를 직접 입력받는 Dual Pan-Tilt turret + Acoustic/RC-Car extension |
 
 ### 구현 범위
 
@@ -92,12 +92,12 @@ flowchart LR
     F --> D["HSV / YOLO Detection"]
     D --> G["6 Stereo-Pair Triangulation"]
     G --> T["Multi-Baseline 3D / Kalman / Hold"]
-    D --> C["ResNet-18 Classification"]
-    T --> R["Explainable Risk Assessment"]
-    C --> R
-    R --> U["AI Decision Console"]
-    R --> K["Inverse Kinematics / Direction Compensation / Safety Gate"]
+    T -->|"Track3D target :5556"| K["Inverse Kinematics / Direction Compensation / Safety Gate"]
     K --> A["Arduino Dual Pan-Tilt"]
+
+    T -->|"frames / XYZ / motion :5557"| C["ResNet-18 Classification"]
+    C --> R["Explainable Risk Assessment"]
+    R --> U["AI Decision Console"]
 
     X["Simplified 2CH RAW-TCP :5560"] -.-> B["Optional TCP-ZMQ Bridge"]
     B -.-> F
@@ -110,9 +110,9 @@ flowchart LR
 3. Fusion은 stale frame을 제외하고 최신 multi-camera packet을 구성한다.
 4. YOLO가 각 view에서 bird bbox·center·confidence를 생성하며 HSV는 calibration/baseline 경로로 사용한다.
 5. 유효 stereo pair가 triangulation을 수행하고 최대 6개 pair를 robust fusion한다.
-6. Kalman/LPF/velocity/hold로 Track3D를 안정화하고 ResNet-18이 조류군을 분류한다.
-7. Decision Engine이 distance·approach·altitude·species·track·threat를 결합한다.
-8. Turret Server가 유효 XYZ를 inverse kinematics, field-calibrated direction compensation과 safety gate를 거쳐 Arduino로 전달한다.
+6. Kalman/LPF/velocity/hold로 Track3D를 안정화하고 유효 target/result를 `:5556`으로 Turret Server에 직접 publish한다.
+7. 별도의 `:5557` 경로에서 ResNet-18과 Decision Engine이 조류군·distance·approach·altitude·track·threat를 결합해 AI Console에 표시한다.
+8. Turret Server는 `:5556`의 XYZ를 IK·방향 보정·safety gate를 거쳐 Arduino로 전달한다. AI Console 결과는 이 제어 경로를 gate하지 않는다.
 
 <details>
 <summary><b>Runtime 상태 흐름 펼쳐보기</b></summary>
@@ -127,11 +127,11 @@ stateDiagram-v2
     DETECT_2D --> WAIT_STEREO_LOCK: target only in 2D
     DETECT_2D --> TRACK_3D: valid stereo evidence
     WAIT_STEREO_LOCK --> TRACK_3D: pair lock
-    TRACK_3D --> CLASSIFY: valid crop
-    TRACK_3D --> ASSESS_RISK: UNKNOWN fallback
+    TRACK_3D --> RESPOND: valid target on :5556
+    TRACK_3D --> CLASSIFY: parallel packet on :5557
     CLASSIFY --> ASSESS_RISK: confidence and temporal vote
     ASSESS_RISK --> MONITOR: LOW or uncertain
-    ASSESS_RISK --> RESPOND: MEDIUM HIGH CRITICAL
+    ASSESS_RISK --> MONITOR: MEDIUM HIGH CRITICAL recommendation
     RESPOND --> HOLD: short target loss
     HOLD --> TRACK_3D: reacquired
     HOLD --> SAFE_RETURN: drop timeout
@@ -331,6 +331,8 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 - X / Y / Z, forward range, relative altitude
 - approaching / crossing / leaving
 - Risk Score 0–100, Risk Level, Recommended Response
+
+이 Console은 Fusion의 `:5557` snapshot을 구독하는 **병렬 표시·의사결정 지원 경로**다. 현재 dashboard는 read-only이며 `:5558`로 제어 명령을 송신하지 않는다. 터렛은 Console 결과가 아니라 Fusion Track3D의 `:5556` target/result를 직접 구독하고, `:5558`은 향후 외부 제어 입력을 위한 reserved endpoint다.
 
 | Pigeon Result | Crow Result |
 |---|---|

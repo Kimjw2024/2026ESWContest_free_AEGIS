@@ -18,12 +18,12 @@
    2D target은 있으나 유효한 stereo pair가 부족하면 물리 대응을 시작하지 않고 3D lock을 기다린다.
 5. **TRACK_3D**  
    최대 6개 stereo pair의 triangulation 결과를 품질·baseline·동기화 조건으로 가중 결합하고, Kalman/LPF/velocity/hold를 적용한다.
-6. **CLASSIFY / VOTE**  
-   유효 crop에 ResNet-18을 적용하고 confidence·Top1–Top2 margin·5-of-7 temporal voting으로 안정 조류군을 결정한다.
-7. **ASSESS_RISK**  
-   거리, 접근 상태, 상대고도, 조류군 우선도, track 상태, Fusion threat를 결합해 Risk Score와 권장 대응을 생성한다.
+6. **PUBLISH CONTROL TARGET**  
+   Fusion이 유효 Track3D target/result를 `:5556`으로 직접 publish한다. Turret Server는 AI Console의 분류·위험도 결과를 기다리지 않는다.
+7. **CLASSIFY / VOTE / ASSESS_RISK — PARALLEL SUPPORT**  
+   별도 `:5557` snapshot 경로가 ResNet-18과 temporal voting을 수행하고 Risk Score·권장 대응을 AI Console에 표시한다.
 8. **RESPOND / HOLD / SAFE RETURN**  
-   유효 target만 터렛 서버로 전달하며, measured IK와 방향성 backlash 보상을 적용한다. 짧은 유실은 hold, 장기 유실은 laser OFF와 점진적 home 복귀로 처리한다.
+   Turret Server가 `:5556` target에 measured IK와 방향성 backlash 보상을 적용한다. 짧은 유실은 hold, 장기 유실은 laser OFF와 home 복귀로 처리한다. 현재 Console은 read-only이며 reserved `:5558` 입력으로 명령을 보내지 않는다.
 
 ---
 
@@ -45,12 +45,12 @@ stateDiagram-v2
     WAIT_STEREO_LOCK --> TRACK_3D: valid pair lock
     WAIT_STEREO_LOCK --> HOLD: target lost
 
-    TRACK_3D --> CLASSIFY: valid crop
-    TRACK_3D --> ASSESS_RISK: crop rejected / UNKNOWN allowed
+    TRACK_3D --> RESPOND: valid target on :5556
+    TRACK_3D --> CLASSIFY: parallel snapshot on :5557
 
     CLASSIFY --> ASSESS_RISK: confidence gate + temporal vote
     ASSESS_RISK --> MONITOR: LOW / uncertain target
-    ASSESS_RISK --> RESPOND: MEDIUM · HIGH · CRITICAL
+    ASSESS_RISK --> ADVISE: MEDIUM · HIGH · CRITICAL recommendation
 
     RESPOND --> HOLD: temporary detection loss
     HOLD --> TRACK_3D: target reacquired within hold window
@@ -72,9 +72,9 @@ stateDiagram-v2
 | `DETECT_2D` | camera image | bbox, center, confidence | class/area/confidence 및 center-jump 조건 |
 | `WAIT_STEREO_LOCK` | multi-view detections | monitoring state | 3D lock 전 actuator 명령 억제 |
 | `TRACK_3D` | stereo pairs | filtered XYZ, velocity, threat | sync window, rectified-Y, position/speed gate |
-| `CLASSIFY` | target crop | raw/stable class | min crop 48 px, confidence 0.70, margin 0.15 |
-| `ASSESS_RISK` | class, XYZ, prediction, track | 0–100 score, level, response | UNKNOWN은 보수적 response로 fallback |
-| `RESPOND` | valid target packet | dual pan/tilt command | measured IK, direction compensation, safe angles, distance gate, spike clamp, watchdog |
+| `CLASSIFY` | parallel `:5557` dashboard crop | raw/stable class | min crop 48 px, confidence 0.70, margin 0.15 |
+| `ASSESS_RISK` | `:5557` class, XYZ, prediction, track | score, level, recommendation | UNKNOWN은 보수적 monitoring recommendation으로 fallback |
+| `RESPOND` | direct `:5556` Track3D target packet | dual pan/tilt command | measured IK, direction compensation, safe angles, distance gate, spike clamp, watchdog |
 | `HOLD` | last valid track | short coast | Fusion hold 0.30 s, aim hold 0.20 s |
 | `SAFE_RETURN` | stale/drop event | laser OFF, home return | drop 1.00 s 이후 점진 복귀 |
 
@@ -120,7 +120,7 @@ crop available
 → stable species/group
 ```
 
-조건을 충족하지 못하면 `UNKNOWN`으로 처리한다. 분류 실패가 3D tracking 자체를 중단시키지 않도록 설계했으며, Risk Engine은 불확실한 조류군에 대해 보수적인 monitoring/track response를 반환한다.
+조건을 충족하지 못하면 `UNKNOWN`으로 처리한다. 이 분류와 Risk Engine은 `:5557` 병렬 지원 경로에 있으므로 분류 실패가 3D tracking이나 `:5556` 터렛 제어를 중단시키지 않는다. Risk Engine은 보수적인 monitoring/track recommendation을 반환한다.
 
 ---
 
@@ -142,13 +142,13 @@ crop available
 | `HIGH` | 55–74 | turret tracking + acoustic response |
 | `CRITICAL` | score ≥ 75 or Fusion status critical | turret + response escalation |
 
-이 결과는 공항 인증 자동 명령이 아니라 **설명 가능한 prototype decision support**다.
+이 결과는 공항 인증 자동 명령이 아니라 **설명 가능한 prototype decision support**다. 현재 결과는 Console에 표시되며 터렛의 `:5556` packet을 생성하거나 차단하지 않는다.
 
 ---
 
 ## 7. Turret Safety & Control State
 
-터렛 서버는 target packet을 바로 servo 출력으로 전달하지 않는다.
+터렛 서버는 Fusion Track3D가 `:5556`으로 직접 보낸 target packet을 받는다. 이 경로는 `:5557` AI Console/ResNet/Risk 경로와 병렬이며, 받은 packet도 바로 servo 출력으로 전달하지 않는다.
 
 ```text
 valid dictionary
@@ -195,10 +195,12 @@ Current field-tuned control:
 | Pi capture/transport | `runtime/raspberry_pi/sender_FIXED_2.py`, `sender2_FIXED_2.py`; `sender_TCP_5560.py` is demo-only |
 | TCP→ZMQ bridge | `runtime/fusion_pc/tcp_zmq_bridge.py` — simplified 2CH only |
 | Detection/3D/tracking | `runtime/fusion_pc/5_final_fusion_async.py` |
+| Track3D control publish (`:5556`) | `runtime/fusion_pc/5_final_fusion_async.py` |
+| Dashboard snapshot publish (`:5557`) | `runtime/fusion_pc/5_final_fusion_async.py` |
 | Species classification | `runtime/fusion_pc/aegis_species_classifier.py` |
-| Risk/response | `runtime/fusion_pc/aegis_decision_engine.py` |
-| Decision UI | `runtime/fusion_pc/ai_decision_dashboard.py` |
-| Turret control | `runtime/fusion_pc/6_turret_server.py` |
+| Risk/recommendation | `runtime/fusion_pc/aegis_decision_engine.py` |
+| Read-only Decision UI | `runtime/fusion_pc/ai_decision_dashboard.py` |
+| Turret control (`:5556` subscriber) | `runtime/fusion_pc/6_turret_server.py` |
 | Arduino actuator | `firmware/arduino_uno/turret_uno.ino` |
 
 ---
@@ -209,7 +211,7 @@ Current field-tuned control:
 
 1. 실물 target이 camera field에 들어온다.
 2. Fusion 화면에서 bbox·XYZ·track이 갱신된다.
-3. AI Console에서 조류군·confidence·Risk·Response가 갱신된다.
-4. Dual Pan-Tilt가 유효 target을 추적하고, target loss 시 안전 상태로 전환한다.
+3. 병렬 `:5557` 경로의 AI Console에서 조류군·confidence·Risk·Recommended Response가 갱신된다.
+4. `:5556`을 직접 구독하는 Dual Pan-Tilt가 유효 target을 추적하고 target loss 시 안전 상태로 전환한다.
 
-즉 AEGIS의 시연 단위는 개별 AI 화면이 아니라 **Perception → Localization → Tracking → Decision → Response의 폐루프 전체**다.
+즉 실제 런타임은 **Perception → Localization → Tracking 이후 직접 Turret 제어와 AI Decision Support 표시가 병렬로 동작**한다. Recommended Response는 운용자 지원 정보이며 현재 터렛 명령의 선행 조건이 아니다.

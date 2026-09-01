@@ -57,13 +57,30 @@ powershell -ExecutionPolicy Bypass -File .\demo_preflight.ps1 -Mode full4ch
 powershell -ExecutionPolicy Bypass -File .\demo_start_windows.ps1 -Mode full4ch
 ```
 
-수동 실행 시에는 **bridge를 실행하지 않는다.**
+수동 실행 시에는 **bridge를 실행하지 않는다.** 아래 3개 프로그램은 한 창에서 순서대로 실행하지 말고, **각각 별도의 새 PowerShell 창**에서 실행한다.
+
+PowerShell #1 — Fusion:
 
 ```powershell
-python .\5_final_fusion.py
-python .\ai_decision_dashboard.py
-python .\6_turret_server.py
+cd <REPO_ROOT>\runtime\fusion_pc
+.\.venv\Scripts\python.exe .\5_final_fusion.py
 ```
+
+PowerShell #2 — AI Decision Dashboard:
+
+```powershell
+cd <REPO_ROOT>\runtime\fusion_pc
+.\.venv\Scripts\python.exe .\ai_decision_dashboard.py
+```
+
+PowerShell #3 — Dual Turret Server:
+
+```powershell
+cd <REPO_ROOT>\runtime\fusion_pc
+.\.venv\Scripts\python.exe .\6_turret_server.py
+```
+
+파란 탁구공으로 촬영·검증할 때는 Fusion 창을 클릭해 키보드 포커스를 준 뒤 `T`를 눌러 화면의 **`Detect: HSV`** 표시를 확인한다. 이전 track이 남아 있거나 좌표가 비정상적으로 유지되면 Fusion 창에서 `R`을 눌러 track을 reset한다.
 
 ### Raspberry Pi #1 — logical camera 0 / 1
 

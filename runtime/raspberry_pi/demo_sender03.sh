@@ -1,32 +1,21 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
-    echo "Usage: ./demo_sender03.sh <LAPTOP_IP>"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+DEMO_LAUNCHER="$REPO_ROOT/scripts/rpi_start_demo_2ch.sh"
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: bash runtime/raspberry_pi/demo_sender03.sh <FUSION_PC_IP>" >&2
+    exit 2
+fi
+
+if [[ ! -f "$DEMO_LAUNCHER" ]]; then
+    echo "ERROR: demo launcher not found: $DEMO_LAUNCHER" >&2
     exit 1
 fi
 
-LAPTOP_IP="$1"
+echo "NOTICE: demo_sender03.sh is a compatibility wrapper."
+echo "        Delegating to scripts/rpi_start_demo_2ch.sh (logical camera 0/1)."
 
-cd ~/aegis
-
-echo "========================================="
-echo " AEGIS DEMO SENDER - LOGICAL CAM 0 + 3"
-echo " Laptop: $LAPTOP_IP"
-echo "========================================="
-
-pkill -f sender_TCP_5560.py 2>/dev/null || true
-pkill -f sender_FIXED_2.py 2>/dev/null || true
-pkill -9 rpicam-vid 2>/dev/null || true
-
-sleep 1
-
-exec python3 src/sender_TCP_5560.py \
-    --profile runtime \
-    --laptop-ip "$LAPTOP_IP" \
-    --port 5560 \
-    --fps 20 \
-    --jpeg-quality 60 \
-    --left-logical-id 0 \
-    --right-logical-id 3 \
-    --stats-interval 1
+exec bash "$DEMO_LAUNCHER" "$1"

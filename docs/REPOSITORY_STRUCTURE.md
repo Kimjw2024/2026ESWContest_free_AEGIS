@@ -33,10 +33,10 @@ This file maps the contest repository to the canonical **2-RPi / 4-Camera** syst
 │  │  ├─ 5_final_fusion.py           # Python entrypoint
 │  │  ├─ 5_final_fusion_async.py     # 4CH receive·YOLO·3D·tracking core
 │  │  ├─ tcp_zmq_bridge.py           # simplified 2CH RAW-TCP bridge only
-│  │  ├─ ai_decision_dashboard.py    # Decision Console
-│  │  ├─ aegis_species_classifier.py # ResNet gate and temporal vote
-│  │  ├─ aegis_decision_engine.py    # risk and response
-│  │  ├─ 6_turret_server.py          # IK·safety·serial
+│  │  ├─ ai_decision_dashboard.py    # :5557 read-only Decision Console
+│  │  ├─ aegis_species_classifier.py # parallel ResNet gate and temporal vote
+│  │  ├─ aegis_decision_engine.py    # parallel risk/recommendation support
+│  │  ├─ 6_turret_server.py          # :5556 Track3D subscriber·IK·safety·serial
 │  │  ├─ calibration_turret.py       # PT1/PT2 fitting
 │  │  ├─ servo_zero_trim.py
 │  │  ├─ config_turret.py
@@ -54,7 +54,7 @@ This file maps the contest repository to the canonical **2-RPi / 4-Camera** syst
 │     ├─ sender_FIXED_2.py            # RPi #1 / logical camera 0·1 / ZMQ
 │     ├─ sender2_FIXED_2.py           # RPi #2 / logical camera 2·3 / ZMQ
 │     ├─ sender_TCP_5560.py           # simplified 2CH RAW-TCP sender
-│     ├─ demo_sender03.sh
+│     ├─ demo_sender03.sh             # compatibility wrapper for simplified demo launch
 │     └─ config_turret.example.py
 │
 ├─ firmware/arduino_uno/
@@ -142,9 +142,11 @@ Full 4CH:
 
 ```text
 RPi #1 sender_FIXED_2.py ─┐
-                          ├→ Fusion :5555 → AI Console → Turret → Arduino
-RPi #2 sender2_FIXED_2.py ─┘
+                          ├→ Fusion :5555 ─┬→ Track3D :5556 → Turret → Arduino
+RPi #2 sender2_FIXED_2.py ─┘               └→ snapshot :5557 → ResNet/Risk → AI Console
 ```
+
+두 출력은 병렬이다. AI Console의 위험도·권장 대응은 표시/의사결정 지원 정보이며 Turret 명령을 중계하거나 gate하지 않는다. Fusion의 `:5558` PULL endpoint는 외부 command input용으로 reserved되어 있지만, 현재 dashboard는 read-only이고 명령을 송신하지 않는다.
 
 Simplified 2CH:
 

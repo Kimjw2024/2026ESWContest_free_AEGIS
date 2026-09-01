@@ -9,11 +9,17 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $Root "..\..")).Path
 Set-Location $Root
 
-$PythonCommand = Get-Command python -ErrorAction SilentlyContinue
-if (-not $PythonCommand) {
-    throw "Python was not found. Activate runtime\fusion_pc\.venv first."
+$VenvPython = Join-Path $Root ".venv\Scripts\python.exe"
+if (Test-Path $VenvPython) {
+    $Python = (Resolve-Path $VenvPython).Path
 }
-$Python = $PythonCommand.Source
+else {
+    $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $PythonCommand) {
+        throw "Python was not found. Create runtime\fusion_pc\.venv or add Python to PATH."
+    }
+    $Python = $PythonCommand.Source
+}
 
 $Version = & $Python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
 if ($LASTEXITCODE -ne 0) {

@@ -9,9 +9,12 @@ Raspberry Pi #1 + Camera 0/1
 Raspberry Pi #2 + Camera 2/3
         ↓ direct ZMQ/JPEG :5555
 Windows Fusion PC
-        ↓
-HSV / YOLO → 6 Stereo Pair → 3D Tracking → ResNet → Risk → Turret
+        ↓ HSV / YOLO → 6 Stereo Pair → 3D Tracking
+        ├→ :5556 → Turret Server → Arduino Dual Pan-Tilt
+        └→ :5557 → AI Console → ResNet / Risk / Recommendation display
 ```
+
+두 출력은 병렬이다. Turret Server는 AI Console을 거치지 않고 Fusion Track3D target/result를 `:5556`에서 직접 받는다. AI Console은 `:5557`을 구독하는 read-only 의사결정 지원 화면이며 현재 reserved `:5558` command input으로 명령을 보내지 않는다.
 
 Mode별 차이는 [`RUNTIME_MODES.md`](RUNTIME_MODES.md)를 따른다.
 
@@ -146,6 +149,8 @@ ai_decision_dashboard.py
 
 `tcp_zmq_bridge.py`는 Full 4CH에서 실행하지 않는다.
 
+`6_turret_server.py`와 `ai_decision_dashboard.py`는 직렬 연결이 아니다. 전자는 `:5556` Track3D packet, 후자는 `:5557` dashboard snapshot을 각각 독립적으로 구독한다.
+
 ### 5.2 Raspberry Pi #1
 
 ```bash
@@ -190,9 +195,9 @@ Fusion UI에서 확인:
 - required pairs `01 / 12 / 23`
 - additional pairs `02 / 03 / 13`
 - Track3D lock
-- ResNet stable vote
-- AI Console risk/response
-- turret target packet
+- `:5556` turret target packet이 Fusion에서 직접 갱신됨
+- `:5557` AI Console에서 ResNet stable vote와 risk/recommendation이 병렬 갱신됨
+- Console을 종료해도 Fusion/Turret 제어 경로가 독립적으로 유지됨
 
 Turret server에서 확인:
 
@@ -296,9 +301,9 @@ RAW TCP :5560 → bridge → ZMQ :5555
 | Port | Direction | Purpose |
 |---:|---|---|
 | 5555 | RPi → Fusion | Full 4CH direct ZMQ/JPEG input; demo bridge local output |
-| 5556 | Fusion → Turret | tracked target/result |
-| 5557 | Fusion → Console | Dashboard result PUB |
-| 5558 | Console → Runtime | UI/runtime command |
+| 5556 | Fusion → Turret | direct Track3D target/result control input |
+| 5557 | Fusion → Console | frames/XYZ/motion/evidence for ResNet/risk display |
+| 5558 | Reserved command client → Fusion | reserved input; current Console is read-only and does not send |
 | 5560 | RPi → Bridge | Simplified 2CH RAW-TCP input |
 | Serial 115200 | Turret server → Arduino | pan/tilt/laser command |
 

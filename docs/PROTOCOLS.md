@@ -89,10 +89,12 @@ This avoids aiming at queued historical frames.
 | RPi #1/#2 → Fusion | ZMQ/JPEG | `5555` | Full 4CH camera packets |
 | Demo RPi → Bridge | RAW TCP | `5560` | Simplified 2CH packets |
 | Bridge → Fusion | local ZMQ | `5555` | Demo packet conversion |
-| Fusion → Turret server | ZeroMQ | `5556` | tracked 3D target/result |
-| Fusion → Decision Console | ZeroMQ PUB | `5557` | crop, class, XYZ, motion, evidence |
-| Console → Runtime | ZeroMQ command | `5558` | UI/runtime command |
+| Fusion → Turret server | ZeroMQ PUB/SUB | `5556` | direct tracked 3D target/result control input |
+| Fusion → Decision Console | ZeroMQ PUB/SUB | `5557` | dashboard frames, XYZ, motion, evidence for ResNet/risk display |
+| Reserved command client → Fusion | ZeroMQ PUSH/PULL | `5558` | reserved command input; current dashboard is read-only and sends nothing |
 | Turret server → Arduino | USB Serial | `115200` | PT1/PT2 pan, tilt, laser |
+
+`5556` and `5557` are parallel Fusion outputs. The turret server subscribes directly to valid Track3D target/result packets on `5556`; it does not receive or wait for a Console risk decision. ResNet classification, explainable risk scoring and Recommended Response remain on the `5557` operator-support path. Fusion binds the `5558` command input when dashboard support is enabled, but the current dashboard does not publish commands.
 
 ## 7. Arduino Command
 
@@ -105,7 +107,7 @@ PT1 pan · PT1 tilt · PT2 pan · PT2 tilt · laser1 · laser2
 The current PC-side turret controller applies the following layers before serialization:
 
 ```text
-Fusion XYZ
+Fusion Track3D target/result from :5556
 → inverse kinematics
 → measured geometry/trim override
 → axis correction
