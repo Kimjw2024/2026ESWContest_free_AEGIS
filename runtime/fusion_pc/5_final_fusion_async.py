@@ -996,8 +996,9 @@ def smooth_yolo_centers(cam_idx, centers):
         if prev is not None and np.all(np.isfinite(prev)):
             jump = float(np.linalg.norm(curr - prev))
             if jump > YOLO_CENTER_MAX_JUMP_PX:
-                curr = prev + (curr - prev) * (YOLO_CENTER_MAX_JUMP_PX / jump)
-            curr = prev * (1.0 - YOLO_CENTER_SMOOTH_ALPHA) + curr * YOLO_CENTER_SMOOTH_ALPHA
+                curr = prev.copy()
+            else:
+                curr = prev * (1.0 - YOLO_CENTER_SMOOTH_ALPHA) + curr * YOLO_CENTER_SMOOTH_ALPHA
         state[lbl] = curr
         out[lbl] = (float(curr[0]), float(curr[1]))
     for lbl in list(state):
