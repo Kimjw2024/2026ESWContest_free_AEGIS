@@ -7,9 +7,11 @@ AEGIS는 **Full 4CH system**, **Simplified 2CH demo**, **4CH calibration**을 �
 
 | Mode | Camera / Raspberry Pi | Transport | Profile | Main Purpose |
 |---|---|---|---|---|
-| **Full 4CH AEGIS Runtime** | 4 Camera / 2 RPi | direct ZMQ/JPEG → Fusion `:5555` | **640×360 @ 30 FPS, Q70** | 6-pair 3D·Tracking·AI·Turret 전체 시스템 |
+| **Full 4CH AEGIS Runtime** | 4 Camera / **2 RPi** | direct ZMQ/JPEG over IPv4 LAN → Fusion `:5555` | **640×360 @ 30 FPS, Q70** | 6-pair 3D·Tracking·AI·Turret 전체 시스템 |
 | **Simplified 2CH Demo** | 2 Camera / 1 RPi | RAW TCP `:5560` → `tcp_zmq_bridge.py` → ZMQ `:5555` | **640×360 @ 20 FPS, Q60** | 축소 시연·백업·빠른 재현 |
-| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG → Fusion `:5555` | **1280×720 @ 20 FPS, Q76** | 4 intrinsics와 6 stereo-pair capture |
+| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG over IPv4 LAN → Fusion `:5555` | **1280×720 @ 20 FPS, Q76** | 4 intrinsics와 6 stereo-pair capture |
+
+Full 4CH transport의 핵심 contract는 **두 RPi가 Fusion PC의 `:5555`로 직접 ZMQ/JPEG를 송신**한다는 점이다. 대회/장시간 시연에서는 안정성을 위해 유선 LAN을 권장하며, 동일 subnet의 Wi-Fi LAN에서도 최종 2-RPi/4CH 통합 동작을 검증했다. 게스트 Wi-Fi처럼 peer/client isolation이 있는 환경에서는 장치 간 TCP 통신이 차단될 수 있으므로 사전 확인이 필요하다.
 
 ## 2. Canonical Full 4CH Topology
 
@@ -23,7 +25,7 @@ flowchart LR
     R1 -->|"ZMQ/JPEG :5555 · img0/img1"| F["Fusion PC"]
     R2 -->|"ZMQ/JPEG :5555 · img2/img3"| F
 
-    F --> D["YOLO / 6-Pair 3D / Tracking"]
+    F --> D["HSV / YOLO · 6-Pair 3D · Tracking"]
     D --> A["ResNet / Risk / Decision Console"]
     D --> T["Turret Server / Arduino"]
 ```
@@ -33,6 +35,7 @@ flowchart LR
 - Launcher: `scripts/rpi_start_sender.sh`
 - Fusion PC full mode: `demo_start_windows.ps1 -Mode full4ch`
 - `tcp_zmq_bridge.py`는 Full 4CH에서 사용하지 않는다.
+- Both RPi nodes and the Fusion PC must be mutually reachable on the same routable IPv4 LAN.
 
 ## 3. Simplified 2CH Demo Topology
 
@@ -88,7 +91,14 @@ bash scripts/rpi_start_sender.sh rpi2 <FUSION_PC_IP> calibration
 
 Calibration capture는 `1280×720 @ 20 FPS, Q76`을 유지한다. Runtime에서 640×360으로 낮추더라도 2D center를 calibration resolution으로 재스케일한 뒤 triangulation한다.
 
-## 6. Documentation Rule
+## 6. Detection / Control Note
+
+- **YOLO**: live bird detection path.
+- **HSV**: low-latency baseline, geometric calibration and controlled bench validation path.
+- Latest turret bench recalibration used a blue table-tennis ball in HSV mode so that the target center is independent of YOLO bounding-box center bias.
+- Turret geometry calibration and runtime direction-dependent servo backlash compensation are separate layers.
+
+## 7. Documentation Rule
 
 다음 표현을 섞지 않는다.
 
