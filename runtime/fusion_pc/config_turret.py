@@ -130,7 +130,7 @@ DETECTION = {
     "yolo_rect": True,
     "yolo_warmup": True,
     "yolo_center_smooth_alpha": 0.25,
-    "yolo_center_max_jump_px": 500,
+    "yolo_center_max_jump_px": 120,
     "yolo_allow_mono_aim": False,
     "hsv_full_resolution": False,
     "hsv_min_area": 25,
