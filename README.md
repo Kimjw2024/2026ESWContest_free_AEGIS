@@ -16,7 +16,7 @@
 ![Stereo Pairs](https://img.shields.io/badge/Stereo%20Pairs-6-4C71F2?style=flat-square)
 ![YOLO mAP](https://img.shields.io/badge/YOLO%20mAP%400.5-97.5%25-00A98F?style=flat-square)
 ![ResNet Accuracy](https://img.shields.io/badge/ResNet--18%20Accuracy-94.76%25-EE4C2C?style=flat-square)
-![Turret Calibration](https://img.shields.io/badge/Turret%20Calibration-22%20x%202%20points-6A5ACD?style=flat-square)
+![Turret Calibration](https://img.shields.io/badge/Turret%20Calibration-20%20x%202%20points-6A5ACD?style=flat-square)
 
 **2026 임베디드SW경진대회 자유공모 부문**
 
@@ -55,7 +55,7 @@ AEGIS는 분산 camera edge에서 시작해 조류 인식, 3차원 위치추정,
 | Multi-Baseline 3D / Tracking | **구현** | pair weighting, Kalman, velocity, hold |
 | YOLO + ResNet-18 2-stage AI | **구현·평가** | live detector와 research detector 역할 분리 |
 | AI Decision Console | **구현** | species·XYZ·motion·risk·response 표시 |
-| Dual Pan-Tilt response | **구현·실측 보정** | PT1/PT2 각 22-point calibration |
+| Dual Pan-Tilt response | **구현·실측 보정** | PT1/PT2 각 20-point field recalibration + direction compensation |
 | RC-Car Acoustic extension | **Prototype** | 자율 waypoint dispatch가 아닌 확장 가능성 검증 |
 
 ---
@@ -66,14 +66,14 @@ AEGIS는 **Full 4CH system**, **Simplified 2CH demo**, **4CH calibration**을 �
 
 | Mode | Camera / Edge | Transport | Profile | 용도 |
 |---|---|---|---|---|
-| **Full 4CH AEGIS Runtime** | **4 Camera / 2 RPi** | direct ZMQ/JPEG → `:5555` | **640×360 @ 30 FPS, Q70** | 전체 6-pair 3D·AI·Turret 시스템 |
+| **Full 4CH AEGIS Runtime** | **4 Camera / 2 RPi** | direct ZMQ/JPEG over IPv4 LAN → `:5555` | **640×360 @ 30 FPS, Q70** | 전체 6-pair 3D·AI·Turret 시스템 |
 | **Simplified 2CH Demo** | 2 Camera / 1 RPi | RAW TCP `:5560` → bridge → ZMQ | **640×360 @ 20 FPS, Q60** | 축소 재현·백업 시연 |
-| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG → `:5555` | **1280×720 @ 20 FPS, Q76** | 4 intrinsics / 6 stereo-pair 보정 |
+| **4CH Calibration** | 4 Camera / 2 RPi | direct ZMQ/JPEG over IPv4 LAN → `:5555` | **1280×720 @ 20 FPS, Q76** | 4 intrinsics / 6 stereo-pair 보정 |
 
 **README·PPT·시연영상의 전체 시스템 주장은 Full 4CH Runtime을 기준으로 한다.**  
 Simplified 2CH Demo는 pair `01` 중심의 축소 경로이며 4CH simultaneous operation을 대체하지 않는다.
 
-자세한 명령과 topology는 [RUNTIME_MODES.md](docs/RUNTIME_MODES.md)에 정리했다.
+Full 4CH는 두 RPi가 Fusion PC에 직접 ZMQ/JPEG를 보내는 구조다. 장시간 시연에는 유선 LAN을 권장하며, 동일 IPv4 subnet의 Wi-Fi LAN에서도 최종 2-RPi/4CH 통합 동작을 검증했다. 자세한 명령과 topology는 [RUNTIME_MODES.md](docs/RUNTIME_MODES.md)에 정리했다.
 
 ---
 
@@ -89,14 +89,14 @@ flowchart LR
     R1 -->|"ZMQ/JPEG img0-img1 :5555"| F["Fusion PC"]
     R2 -->|"ZMQ/JPEG img2-img3 :5555"| F
 
-    F --> D["YOLO Bird Detection"]
+    F --> D["HSV / YOLO Detection"]
     D --> G["6 Stereo-Pair Triangulation"]
     G --> T["Multi-Baseline 3D / Kalman / Hold"]
     D --> C["ResNet-18 Classification"]
     T --> R["Explainable Risk Assessment"]
     C --> R
     R --> U["AI Decision Console"]
-    R --> K["Inverse Kinematics / Safety Gate"]
+    R --> K["Inverse Kinematics / Direction Compensation / Safety Gate"]
     K --> A["Arduino Dual Pan-Tilt"]
 
     X["Simplified 2CH RAW-TCP :5560"] -.-> B["Optional TCP-ZMQ Bridge"]
@@ -108,11 +108,11 @@ flowchart LR
 1. `demo_preflight.ps1`이 코드·모델·4 intrinsics·6 stereo NPZ·Python module을 점검한다.
 2. RPi #1이 logical camera `0/1`, RPi #2가 logical camera `2/3`을 송신한다.
 3. Fusion은 stale frame을 제외하고 최신 multi-camera packet을 구성한다.
-4. YOLO가 각 view에서 bird bbox·center·confidence를 생성한다.
+4. YOLO가 각 view에서 bird bbox·center·confidence를 생성하며 HSV는 calibration/baseline 경로로 사용한다.
 5. 유효 stereo pair가 triangulation을 수행하고 최대 6개 pair를 robust fusion한다.
 6. Kalman/LPF/velocity/hold로 Track3D를 안정화하고 ResNet-18이 조류군을 분류한다.
 7. Decision Engine이 distance·approach·altitude·species·track·threat를 결합한다.
-8. Turret Server가 유효 XYZ를 inverse kinematics와 safety gate를 거쳐 Arduino로 전달한다.
+8. Turret Server가 유효 XYZ를 inverse kinematics, field-calibrated direction compensation과 safety gate를 거쳐 Arduino로 전달한다.
 
 <details>
 <summary><b>Runtime 상태 흐름 펼쳐보기</b></summary>
@@ -147,7 +147,7 @@ stateDiagram-v2
 - **2 Raspberry Pi / 4 Camera / 6 Stereo Pair**
 - 조류 위치 검출과 조류군 분류를 분리한 **2-stage AI pipeline**
 - 단발성 detection이 아닌 **시계열 tracking · velocity · hold**
-- 3D 좌표를 실제 터렛 각도로 변환하는 **기구학 모델 + 실측 보정**
+- 3D 좌표를 실제 터렛 각도로 변환하는 **기구학 모델 + 실측 보정 + 방향성 backlash 보상**
 - Species · XYZ · Motion · Risk · Recommended Response를 통합한 **AI Decision Console**
 - 최신 frame·target·serial command를 우선하는 **latest-first safety architecture**
 
@@ -162,7 +162,7 @@ stateDiagram-v2
 | **Edge & Control** | ![RPi5](https://img.shields.io/badge/Raspberry%20Pi-5%20x2-A22846?style=flat-square&logo=raspberrypi&logoColor=white) ![IMX219](https://img.shields.io/badge/IMX219-4%20Cameras-455A64?style=flat-square) ![Arduino UNO](https://img.shields.io/badge/Arduino-UNO-00979D?style=flat-square&logo=arduino&logoColor=white) ![PanTilt](https://img.shields.io/badge/Actuator-Dual%20Pan--Tilt-6A5ACD?style=flat-square) |
 | **Vision & AI** | ![OpenCV](https://img.shields.io/badge/OpenCV-Stereo%203D-5C3EE8?style=flat-square&logo=opencv&logoColor=white) ![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-111F68?style=flat-square&logo=ultralytics&logoColor=white) ![PyTorch](https://img.shields.io/badge/PyTorch-ResNet--18-EE4C2C?style=flat-square&logo=pytorch&logoColor=white) |
 | **3D & Tracking** | ![Stereo](https://img.shields.io/badge/Stereo%20Pairs-6-4C71F2?style=flat-square) ![Baseline](https://img.shields.io/badge/3D-Multi--Baseline-7B61FF?style=flat-square) ![Tracking](https://img.shields.io/badge/Tracking-Kalman%20%2B%20LPF-5A67D8?style=flat-square) |
-| **Communication** | ![Ethernet](https://img.shields.io/badge/Ethernet-Wired-00599C?style=flat-square) ![ZeroMQ](https://img.shields.io/badge/ZeroMQ-5555--5558-DF0000?style=flat-square&logo=zeromq&logoColor=white) ![TCP](https://img.shields.io/badge/Demo%20TCP-5560-555555?style=flat-square) ![Serial](https://img.shields.io/badge/Serial-115200-444444?style=flat-square) |
+| **Communication** | ![LAN](https://img.shields.io/badge/IPv4%20LAN-Direct%20ZMQ-00599C?style=flat-square) ![ZeroMQ](https://img.shields.io/badge/ZeroMQ-5555--5558-DF0000?style=flat-square&logo=zeromq&logoColor=white) ![TCP](https://img.shields.io/badge/Demo%20TCP-5560-555555?style=flat-square) ![Serial](https://img.shields.io/badge/Serial-115200-444444?style=flat-square) |
 | **Runtime & Release** | ![Windows](https://img.shields.io/badge/Windows-Fusion%20PC-0078D4?style=flat-square&logo=windows11&logoColor=white) ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white) ![PySide6](https://img.shields.io/badge/PySide6-Decision%20Console-41CD52?style=flat-square&logo=qt&logoColor=white) ![GitLFS](https://img.shields.io/badge/Git%20LFS-Models%20%26%20NPZ-F05032?style=flat-square&logo=git&logoColor=white) |
 
 PyTorch/torchvision은 PC의 CPU/CUDA 환경에 맞는 build를 별도 설치하며, `Pillow`를 포함한 나머지 package는 [`requirements.txt`](runtime/fusion_pc/requirements.txt)에 명시한다.
@@ -225,25 +225,24 @@ tilt = 90° + atan2(y_rel, dist_h)
        + tilt_trim
 ```
 
-`calib_data.json`에는 **PT1·PT2 각각 22개 실측 3D target–servo angle sample**이 보존된다.
+최종 2-RPi/4CH 통합 리그에서는 파란 탁구공 HSV target을 이용해 **PT1·PT2 각각 20개 위치**에서 3D target–servo angle을 다시 측정했다. 좌·중·우, 상·하와 여러 depth를 포함해 static geometry/trim/axis/depth-scale을 맞추고 `calib_data.json`과 `turret_calibration_overrides.json`으로 저장한다.
 
-| Parameter | PT1 | PT2 |
-|---|---:|---:|
-| `pos_global` | `[0.0758, 0, -0.0869]` m | `[0.3755, 0, -0.0918]` m |
-| `h_pivot` | 0.1280 m | 0.1280 m |
-| `l_arm` | 0.0410 m | 0.0410 m |
-| `dz_laser` | 0.012 m | 0.012 m |
-| `pan_trim` | +4.0° | +3.0° |
-| `tilt_trim` | −5.8° | −1.6° |
-| `axis_tilt` | −0.81° | +0.21° |
-| `axis_lean` | +0.40° | −5.80° |
+실물 추적에서는 top-to-bottom tilt 이동 시 반복되는 서보 hysteresis가 관찰되어 static calibration과 별도로 방향성 보상을 적용한다.
 
-`z_scale = 0.7611`
-
-| 보정 전후 비교 | 결과 |
+| Runtime turret control | Current value |
 |---|---:|
-| PT1 Pan MAE | **35.0% 감소** |
-| PT1 Tilt MAE | **37.7% 감소** |
+| PT1 downward compensation | **0.80°** |
+| PT2 downward compensation | **0.80°** |
+| upward compensation | 0.00° / 0.00° |
+| base / max adaptive alpha | 0.40 / 0.90 |
+| pan / tilt deadband | 0.08° / 0.10° |
+| servo minimum send interval | 0.020 s |
+| maximum angle step | 18°/frame |
+| downward response multiplier | 1.18 |
+
+`turret_calibration_overrides.json`의 최신 생성값을 현재 물리 리그의 authoritative geometry/trim/depth-scale로 사용하며, 과거 보고서의 개별 파라미터를 현재값으로 재사용하지 않는다.
+
+역사적 개발 보고서의 PT1 calibration comparison은 Pan MAE **35.0% 감소**, Tilt MAE **37.7% 감소**를 기록한다. 이 값은 당시 각도 보정 전후 비교이며 최신 20-point field recalibration의 end-to-end accuracy를 의미하지 않는다.
 
 ### Runtime Safety Gate
 
@@ -252,7 +251,7 @@ tilt = 90° + atan2(y_rel, dist_h)
 - maximum laser distance: `2.2 m`
 - short target loss: laser OFF hold
 - long target loss: gradual home return
-- latest-command parser, spike clamp, watchdog, serial buffer freshness
+- adaptive EMA, deadband, direction compensation, latest-command parser, spike clamp, watchdog
 - predictive lead는 새 field timing calibration 전까지 보수적으로 비활성화
 
 ---
@@ -353,9 +352,9 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 
 | 문제 | 원인 | 대응 |
 |---|---|---|
-| 프레임 지연 | queue 누적·sender 시간차 | 유선 Ethernet, low HWM, latest-first, timestamp window |
+| 프레임 지연 | queue 누적·sender 시간차 | direct LAN, low HWM, latest-first, timestamp window |
 | 3D 좌표 튐 | calibration·pair 품질 편차 | 고해상도 보정, pair gate, runtime coordinate scaling |
-| 터렛 조준 오차 | 설치 기울기·laser offset | trim, axis correction, measured target fitting |
+| 터렛 조준 오차 | 설치 기울기·laser offset·servo hysteresis | measured fitting, axis correction, direction compensation |
 | 검출 불안정 | 작은 bbox·배경·label 오염 | HSV baseline, hard negative, audit, `UNKNOWN` gate |
 
 ---
@@ -370,7 +369,7 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 │  │  ├─ ai_decision_dashboard.py    # Decision Console
 │  │  ├─ aegis_species_classifier.py # ResNet·gate·vote
 │  │  ├─ aegis_decision_engine.py    # Risk / response
-│  │  ├─ 6_turret_server.py          # IK·safety·serial
+│  │  ├─ 6_turret_server.py          # IK·direction comp·safety·serial
 │  │  ├─ tcp_zmq_bridge.py           # Simplified 2CH demo only
 │  │  └─ tools/                       # Calibration / validation
 │  └─ raspberry_pi/
@@ -400,7 +399,7 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 | Camera RMS / depth sensitivity | [METRICS.md](docs/METRICS.md) | calibration NPZ, setup image |
 | YOLO P/R/mAP | [AI_RESULTS.md](docs/AI_RESULTS.md) | CSV, curves, confusion matrix |
 | ResNet Accuracy/Macro-F1 | [AI_RESULTS.md](docs/AI_RESULTS.md) | test JSON, history, confusion matrix |
-| Turret calibration | [TURRET_CALIBRATION.md](docs/TURRET_CALIBRATION.md) | calibration data, override, control code |
+| Turret calibration | [TURRET_CALIBRATION.md](docs/TURRET_CALIBRATION.md) | calibration data, override, direction-compensated control code |
 | Dataset curation | [DATASET.md](docs/DATASET.md) | audit code, rules, review images |
 | Team ownership | [TEAM.md](TEAM.md) | domain별 code/document path |
 
@@ -462,7 +461,7 @@ Simplified 2CH demo는 [`START_HERE_KO.md`](START_HERE_KO.md)를 따른다.
 | [OPERATION_FLOW.md](docs/OPERATION_FLOW.md) | 운용 상태와 안전 전이 |
 | [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md) | file-level responsibility |
 | [CAMERA_CALIBRATION.md](docs/CAMERA_CALIBRATION.md) | 4 intrinsics·6 stereo pairs |
-| [TURRET_CALIBRATION.md](docs/TURRET_CALIBRATION.md) | IK·22-point fitting·safety |
+| [TURRET_CALIBRATION.md](docs/TURRET_CALIBRATION.md) | IK·20-point field recalibration·direction compensation·safety |
 | [AI_RESULTS.md](docs/AI_RESULTS.md) | graph·class-level metrics |
 | [DATASET.md](docs/DATASET.md) | curation·split·source provenance policy |
 | [RUNBOOK.md](docs/RUNBOOK.md) | 설치·2-RPi/4CH 실행·fresh clone 검증 |
