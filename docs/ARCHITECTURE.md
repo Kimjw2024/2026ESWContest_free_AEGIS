@@ -15,7 +15,7 @@ flowchart LR
     R2 -->|"ZMQ/JPEG · img2/img3"| RX
 
     subgraph FUSION["Fusion PC"]
-        DET["YOLO Bird Detection"]
+        DET["HSV / YOLO Detection"]
         GEO["Rectification / 6-Pair Triangulation"]
         MF["Robust Multi-Baseline Fusion"]
         TRK["LPF / Kalman / Velocity / Hold"]
@@ -30,19 +30,20 @@ flowchart LR
 
     subgraph RESPONSE["Response Layer"]
         IK["Coordinate Transform / IK"]
-        SAFE["Safety Gate / Smoothing"]
+        COMP["Measured Override / Direction Compensation"]
+        SAFE["Adaptive Smoothing / Safety Gate"]
         UNO["Arduino UNO"]
         PT["Dual Pan-Tilt"]
         MOBILE["Mobile Acoustic Prototype"]
 
-        IK --> SAFE --> UNO --> PT
+        IK --> COMP --> SAFE --> UNO --> PT
         DEC -.-> MOBILE
     end
 
     DEC --> IK
 ```
 
-The Full 4CH configuration uses two Raspberry Pis and four cameras. The `tcp_zmq_bridge.py` path is reserved for the simplified 1-RPi / 2-camera RAW-TCP demo.
+The Full 4CH configuration uses two Raspberry Pis and four cameras. Both Pi nodes send direct ZMQ/JPEG packets to the Fusion PC over a mutually reachable IPv4 LAN. Wired LAN is recommended for sustained demonstrations; same-subnet Wi-Fi uses the same transport contract. The `tcp_zmq_bridge.py` path is reserved for the simplified 1-RPi / 2-camera RAW-TCP demo.
 
 ## 2. Explicit Data Interfaces
 
@@ -73,14 +74,14 @@ This separation lets capture, AI, geometry, UI and actuator modules be tested in
 |---|---|---|
 | 4CH Capture | IMX219 dual stream, logical ID, timestamps, JPEG | `runtime/raspberry_pi/sender_FIXED_2.py`, `sender2_FIXED_2.py` |
 | 2CH Demo Bridge | RAW TCP receive and local ZMQ conversion | `runtime/fusion_pc/tcp_zmq_bridge.py` |
-| Detection | bird bbox/center and `Detection2D` | `5_final_fusion_async.py` |
+| Detection | HSV calibration target or YOLO bird bbox/center | `5_final_fusion_async.py` |
 | Camera Geometry | rectification, six-pair triangulation, pair validity | `5_final_fusion_async.py`, `runtime/fusion_pc/tools/` |
 | Multi-Pair Fusion | synchronization/reliability weighting and outlier handling | `5_final_fusion_async.py` |
 | Tracking | LPF, Kalman, velocity, temporary hold/drop | `5_final_fusion_async.py` |
 | Classification | ResNet-18, crop gate, confidence margin, temporal vote | `aegis_species_classifier.py` |
 | Decision | species·XYZ·motion·track evidence → score/response | `aegis_decision_engine.py` |
 | Interface | crop, class, XYZ, motion, risk, response | `ai_decision_dashboard.py` |
-| Turret Control | coordinate transform, IK, safety, serial | `6_turret_server.py`, `calibration_turret.py` |
+| Turret Control | coordinate transform, IK, measured override, direction compensation, smoothing, safety, serial | `6_turret_server.py`, `calibration_turret.py` |
 | Firmware | latest-command parser, servo/laser watchdog | `firmware/arduino_uno/` |
 
 ## 5. Camera Geometry
@@ -109,11 +110,14 @@ Calibration `T` vectors are authoritative. `01/12/23` form the minimum connected
 - temporary loss enters hold/coast
 - ResNet `UNKNOWN` does not stop Track3D
 - turret output requires geometry, tracking and safety checks
+- static turret geometry calibration and dynamic servo-hysteresis compensation are separated
+- top-to-bottom tilt motion uses the final field-tuned `0.80°` correction on PT1/PT2
 - Full 4CH and simplified demo converge on the same downstream `FramePacket` contract
 
 ## 7. Runtime Model Policy
 
 - Live detector: **YOLO26n / COCO bird class 14**
+- Calibration/debug detector: **HSV / controlled blue target**
 - Live classifier: **ResNet-18 / 8 bird classes-groups**
 - Research detector: **custom YOLOv8s / Held-Out Offline Test**
 - Risk Engine: **explainable rule-based decision support**
