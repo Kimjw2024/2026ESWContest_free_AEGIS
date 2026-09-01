@@ -167,6 +167,7 @@ YOLO_CENTER_SMOOTH_ALPHA = float(np.clip(YOLO_CENTER_SMOOTH_ALPHA, 0.05, 1.0))
 YOLO_CENTER_MAX_JUMP_PX = float(DETECTION_CFG.get("yolo_center_max_jump_px", 220.0))
 if not np.isfinite(YOLO_CENTER_MAX_JUMP_PX) or YOLO_CENTER_MAX_JUMP_PX <= 0:
     YOLO_CENTER_MAX_JUMP_PX = 220.0
+YOLO_ALLOW_MONO_AIM = bool(DETECTION_CFG.get("yolo_allow_mono_aim", False))
 YOLO_KEYPOINT_INDEX = DETECTION_CFG.get("yolo_keypoint_index", None)
 AIM_STATIC_TARGETS = bool(DETECTION_CFG.get("aim_static_targets", False))
 if YOLO_KEYPOINT_INDEX is not None:
@@ -3106,7 +3107,7 @@ try:
                 # approximate monocular continuation, not fresh
                 # stereo triangulation.
                 # -------------------------------------------------
-                if len(valid) == 1:
+                if len(valid) == 1 and (DETECT_MODE != "YOLO" or YOLO_ALLOW_MONO_AIM):
                     mono_cam = valid[0]
                     mono_pixel = global_centers[mono_cam].get(lbl)
 
