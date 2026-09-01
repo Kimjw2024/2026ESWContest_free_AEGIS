@@ -1,4 +1,4 @@
-﻿# config_turret.py
+# config_turret.py
 import numpy as np
 import os
 import json
@@ -140,7 +140,7 @@ DETECTION = {
 }
 
 HSV_COLORS = {
-    "Target_1": {"lower": [40, 100, 100], "upper": [80, 255, 255]},
+    "Target_1": {"lower": [100, 75, 60], "upper": [125, 255, 255]},
     "Target_2": {"lower": [105, 85, 70], "upper": [130, 255, 255]},
 }
 
@@ -214,22 +214,65 @@ TURRET_HOLD = {
 
 # [서보 스무딩]
 SERVO_SMOOTH = {
-    "alpha": 0.72,
-    "min_send_interval": 0.015,
-    "tick_hz": 50,              # 호환용 기준 tick. 실제 서버는 ZMQ poll + min_send_interval 기반으로 동작.
-    "poll_timeout_ms": 2,       # 좌표 입력 대기 시간. 짧게 유지해 최신 ZMQ 좌표 반응 지연을 줄인다.
-    "clear_output_before_write": True, # PC 송신 버퍼에 남은 과거 명령을 전송 직전에 버린다.
-    # ★ spike 방지: 한 프레임에 허용할 최대 각도 변화량 (도)
-    # 튀는 증상이 심하면 줄이고 (예: 8), 추적 반응이 느리면 늘림 (예: 20)
-    "max_deg_per_frame": 30.0,
-    "threat_motion_boost": 0.50,
-    "max_alpha": 0.95,
-    "tilt_alpha_scale": 1.10,
-    "tilt_deadband": 0.03,
-    "laser_keepalive_interval": 0.10, # Arduino laser watchdog is 300 ms; resend laser-on commands before it expires.
-    "tilt_max_deg_scale": 1.00,
-    "error_boost_deg": 4.0,
-    "error_boost_alpha": 0.16,
+    # 정지 상태에서는 노이즈 억제
+    "alpha": 0.40,
+
+    # MG995 / MG996R 기준 약 50Hz
+    "min_send_interval": 0.020,
+    "tick_hz": 50,
+    "poll_timeout_ms": 2,
+
+    "clear_output_before_write": True,
+
+    # 비정상적인 순간 좌표 점프 방지
+    "max_deg_per_frame": 18.0,
+
+    # threat에 의한 과격한 움직임 완화
+    "threat_motion_boost": 0.15,
+
+    # 큰 오차에서는 빠르게 따라감
+    "max_alpha": 0.90,
+
+    # Pan / Tilt 미세 떨림 억제
+    "pan_deadband": 0.08,
+    "tilt_deadband": 0.10,
+
+    # 실제 Arduino에 보내는 각도도 아주 작은 변화는 무시
+    "output_deadband_deg": 0.12,
+
+    "tilt_alpha_scale": 1.00,
+
+    "laser_keepalive_interval": 0.10,
+
+    # 비정상 tilt jump 제한
+    "tilt_max_deg_scale": 0.90,
+
+    # 1도 이상 오차가 생기면 빠르게 추종
+    "error_boost_deg": 1.0,
+    "error_boost_alpha": 0.38,
+}
+
+
+# [Tilt 방향성 / Servo Backlash 보상]
+TURRET_DIRECTION_COMP = {
+    # 이보다 작은 각도 변화는 방향 전환으로 보지 않음
+    # HSV 좌표 흔들림으로 UP/DOWN이 계속 바뀌는 것 방지
+    "direction_epsilon_deg": 0.18,
+
+    # 2프레임 연속 같은 방향이어야 방향 전환 확정
+    "direction_confirm_frames": 2,
+
+    # 위 -> 아래 이동 시 실제 서보가 덜 내려오는 현상 보상
+    # 최종 실물 튜닝값
+    "pt1_down_deg": 0.80,
+    "pt2_down_deg": 0.80,
+
+    # 아래 -> 위는 현재 정확하므로 추가 보상 없음
+    "pt1_up_deg": 0.00,
+    "pt2_up_deg": 0.00,
+
+    # 하강할 때 tilt EMA 응답속도 증가
+    "down_alpha_mult": 1.18,
 }
 
 # [서보 PWM]
