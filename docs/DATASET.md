@@ -94,15 +94,15 @@ For every external source batch, the team must retain an internal source ledger 
 | Local batch / class mapping | connect source records to curated outputs |
 | Team edits | record relabeling, crop, exclusion and hard-negative processing |
 
-Before final Public submission:
+Public repository 관리 원칙:
 
-- verify that every non-self-captured external batch has a recorded source and usage condition
+- non-self-captured external batch는 source와 usage condition을 확인 대상으로 관리한다
 - do not upload raw images whose redistribution permission is unclear
 - keep source-specific records in the Master Archive if they contain local paths or non-public acquisition metadata
 - cite public datasets/providers in the report or repository when their terms require attribution
 
-The current repository alone does not prove the license of every original image; that verification remains a team-controlled source-management task.
+공개 저장소에는 재현 코드·정제 규칙·집계 결과와 대표 evidence를 제공하고, 원천별 상세 기록은 재배포 조건과 로컬 경로 노출을 고려해 별도 관리한다.
 
-## 6. Limitation
+## 6. Validation Scope
 
 The dataset is a research/competition prototype and does not fully represent every airport, weather, altitude, sensor and background distribution. Offline metrics must not be presented as certified field performance.
