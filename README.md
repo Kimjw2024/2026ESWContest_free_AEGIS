@@ -20,7 +20,7 @@
 
 **2026 임베디드SW경진대회 자유공모 부문**
 
-[빠른 실행](START_HERE_KO.md) · [실행 가이드](docs/RUNBOOK.md) · [시스템 구조](docs/ARCHITECTURE.md) · [정량 지표](docs/METRICS.md) · [카메라 보정](docs/CAMERA_CALIBRATION.md) · [터렛 보정](docs/TURRET_CALIBRATION.md) · [AI 파이프라인](docs/AI_PIPELINE.md) · [AI 정량결과](docs/AI_RESULTS.md) · [데이터셋](docs/DATASET.md)
+[시연 동영상](https://youtu.be/BSk6hAaDgKw) · [빠른 실행](START_HERE_KO.md) · [실행 가이드](docs/RUNBOOK.md) · [시스템 구조](docs/ARCHITECTURE.md) · [정량 지표](docs/METRICS.md) · [카메라 보정](docs/CAMERA_CALIBRATION.md) · [터렛 보정](docs/TURRET_CALIBRATION.md) · [AI 파이프라인](docs/AI_PIPELINE.md) · [AI 정량결과](docs/AI_RESULTS.md) · [데이터셋](docs/DATASET.md)
 
 <br>
 
