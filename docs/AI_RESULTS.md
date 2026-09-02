@@ -85,8 +85,8 @@ Frame
 
 - 높은 offline mAP은 정제한 bird dataset에서 detector가 bird localization을 안정적으로 학습했음을 보여준다.
 - `mAP@0.5:0.95`는 IoU 기준이 엄격해질 때의 localization 품질까지 포함하므로 `mAP@0.5`보다 낮다.
-- Raspberry Pi 실환경 배경에서는 domain-shift false positive가 확인되어, Custom YOLO는 연구 결과로 분리하고 현재 live detector는 YOLO26n bird class를 사용한다.
-- 향후 개선은 **공항·야외 hard-negative mining → field fine-tuning → 거리·bbox 크기별 검출률 평가** 순서로 진행한다.
+- Custom YOLOv8s는 팀 학습·정량 평가 모델로, 현재 live Runtime은 COCO bird class 기반 YOLO26n으로 역할을 분리했다.
+- 다음 확장 단계는 **공항·야외 hard-negative mining → field fine-tuning → 거리·bbox 크기별 검출률 평가**다.
 
 ---
 
