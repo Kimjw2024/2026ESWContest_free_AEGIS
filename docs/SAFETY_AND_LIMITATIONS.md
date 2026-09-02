@@ -3,7 +3,7 @@
 ## Claim Boundaries
 
 - Custom YOLOv8s **mAP@0.5 97.5%** is a Held-Out Offline Test result, not live airport accuracy.
-- The stable live detector is YOLO26n COCO bird class 14; the custom detector remains a research model because Raspberry Pi field inputs exposed domain-shift false positives.
+- The stable live detector is YOLO26n COCO bird class 14; Custom YOLOv8s is presented separately as the team-trained Held-Out Offline Test model.
 - ResNet output represents 8 classes/groups; `raptor` is not a single species.
 - The Y coordinate is a **relative altitude signal**, not absolute sea-level altitude.
 - Risk output is an explainable decision-support score, not an airport-certified biological hazard model.
