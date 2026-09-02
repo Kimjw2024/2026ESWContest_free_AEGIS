@@ -36,6 +36,10 @@
     "master_source": "09_RESULTS_EVIDENCE/04_HSV_TEST.png"
   },
   {
+    "repository_path": "assets/system/hsv_dual_turret_aiming.png",
+    "master_source": "final_demo/HSV_3D_TRACKING_annotated_frame.png"
+  },
+  {
     "repository_path": "assets/system/system_overview.png",
     "master_source": "09_RESULTS_EVIDENCE/05_bird_tracking.png"
   },
