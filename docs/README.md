@@ -43,5 +43,5 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 
 | 문서 | 내용 |
 |---|---|
-| [SAFETY_AND_LIMITATIONS.md](SAFETY_AND_LIMITATIONS.md) | laser·field·model 한계 |
+| [SAFETY_AND_LIMITATIONS.md](SAFETY_AND_LIMITATIONS.md) | 안전 기준·claim 범위·확장 검증 항목 |
 | [TEAM.md](../TEAM.md) | 김중우 / 박주은 / 공동 수행 역할 |
