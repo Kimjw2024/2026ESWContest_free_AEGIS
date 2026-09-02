@@ -129,7 +129,7 @@ source image/label pairing
 |---|---|---|
 | ![](../results/yolo/box_f1_curve.png) | ![](../results/yolo/box_precision_curve.png) | ![](../results/yolo/box_recall_curve.png) |
 
-현장 Raspberry Pi 영상에서 배경·조명·작은 bbox로 인한 domain-shift false positive를 확인했기 때문에, 다음 개선 우선순위는 **공항·야외 hard-negative mining → field fine-tuning → 거리·bbox 크기별 검출률 평가**다.
+Custom YOLOv8s는 Held-Out Offline Test 결과로 관리하며, 다음 확장 단계는 **공항·야외 hard-negative mining → field fine-tuning → 거리·bbox 크기별 검출률 평가**다.
 
 ---
 
