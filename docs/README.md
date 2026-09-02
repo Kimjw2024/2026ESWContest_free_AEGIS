@@ -11,11 +11,10 @@ AEGIS의 대회용 상세 문서는 기술 Domain과 정량 Evidence별로 분�
 | [OPERATION_FLOW.md](OPERATION_FLOW.md) | 입력부터 안전 복귀까지 운용 상태 |
 | [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) | file-level responsibility map |
 
-## Competition / Submission
+## Provenance / Third-Party
 
 | 문서 | 내용 |
 |---|---|
-| [CONTEST_SUBMISSION.md](CONTEST_SUBMISSION.md) | GitHub 이름·Public·URL 유지·fresh clone 체크 |
 | [PROVENANCE_AND_IMPROVEMENTS.md](PROVENANCE_AND_IMPROVEMENTS.md) | 기존 HSV/3D baseline과 2026 고도화 구분 |
 | [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | 외부 의존성 및 라이선스 주의사항 |
 

@@ -96,7 +96,7 @@ This is a conservative exhibition preset that disables forward lead until a new 
 |---|---:|
 | Critical distance | 1.5 m |
 | Max laser distance | 2.2 m |
-| Servo min send interval | 0.015 s |
+| Servo min send interval | 0.020 s |
 | Pan range | 20°–160° |
 | Tilt range | 45°–150° |
 | Arduino watchdog / keepalive design | latest-command + periodic resend |
