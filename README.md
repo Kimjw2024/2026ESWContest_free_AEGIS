@@ -460,7 +460,7 @@ Simplified 2CH demo는 [`START_HERE_KO.md`](START_HERE_KO.md)를 따른다.
 
 ---
 
-## 12. 기술 문서·한계·향후 확장
+## 12. 기술 문서·검증 범위·확장 계획
 
 | 문서 | 내용 |
 |---|---|
@@ -474,7 +474,7 @@ Simplified 2CH demo는 [`START_HERE_KO.md`](START_HERE_KO.md)를 따른다.
 | [DATASET.md](docs/DATASET.md) | curation·split·source provenance policy |
 | [RUNBOOK.md](docs/RUNBOOK.md) | 설치·2-RPi/4CH 실행·fresh clone 검증 |
 
-현재 한계:
+현재 프로토타입의 확장 검증 항목:
 
 - 공항·야외 hard-negative mining 및 field fine-tuning
 - 장거리·저조도·우천 환경 검증
