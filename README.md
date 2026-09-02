@@ -14,13 +14,13 @@
 
 ![Cameras](https://img.shields.io/badge/Cameras-4%20x%20IMX219-455A64?style=flat-square)
 ![Stereo Pairs](https://img.shields.io/badge/Stereo%20Pairs-6-4C71F2?style=flat-square)
-![YOLO mAP](https://img.shields.io/badge/YOLO%20mAP%400.5-97.5%25-00A98F?style=flat-square)
+![YOLO Offline mAP](https://img.shields.io/badge/Custom%20YOLOv8s%20Offline%20mAP%400.5-97.5%25-00A98F?style=flat-square)
 ![ResNet Accuracy](https://img.shields.io/badge/ResNet--18%20Accuracy-94.76%25-EE4C2C?style=flat-square)
 ![Turret Calibration](https://img.shields.io/badge/Turret%20Calibration-20%20x%202%20points-6A5ACD?style=flat-square)
 
 **2026 임베디드SW경진대회 자유공모 부문**
 
-[빠른 실행](START_HERE_KO.md) · [Runtime Modes](docs/RUNTIME_MODES.md) · [시스템 구조](docs/ARCHITECTURE.md) · [운용 상태](docs/OPERATION_FLOW.md) · [파일 구조](docs/REPOSITORY_STRUCTURE.md) · [카메라 보정](docs/CAMERA_CALIBRATION.md) · [터렛 보정](docs/TURRET_CALIBRATION.md) · [AI 정량결과](docs/AI_RESULTS.md) · [팀 역할](TEAM.md)
+[빠른 실행](START_HERE_KO.md) · [실행 가이드](docs/RUNBOOK.md) · [시스템 구조](docs/ARCHITECTURE.md) · [정량 지표](docs/METRICS.md) · [카메라 보정](docs/CAMERA_CALIBRATION.md) · [터렛 보정](docs/TURRET_CALIBRATION.md) · [AI 파이프라인](docs/AI_PIPELINE.md) · [AI 정량결과](docs/AI_RESULTS.md) · [데이터셋](docs/DATASET.md)
 
 <br>
 
@@ -226,6 +226,12 @@ tilt = 90° + atan2(y_rel, dist_h)
 ```
 
 최종 2-RPi/4CH 통합 리그에서는 파란 탁구공 HSV target을 이용해 **PT1·PT2 각각 20개 위치**에서 3D target–servo angle을 다시 측정했다. 좌·중·우, 상·하와 여러 depth를 포함해 static geometry/trim/axis/depth-scale을 맞추고 `calib_data.json`과 `turret_calibration_overrides.json`으로 저장한다.
+
+### HSV 기반 End-to-End 제어 검증
+
+<p align="center"><img src="assets/system/hsv_dual_turret_aiming.png" alt="HSV 3D tracking and dual-turret aiming verification" width="900"></p>
+
+HSV는 조류 인식 모델을 대체하는 검출기가 아니라, 색상 타깃의 반복 가능한 중심점을 이용해 **4CH 입력 → 6-pair 3D → Kalman/hold → Dual Turret 조준** 경로를 분리 검증하는 경량 calibration·bench-validation mode다. 이를 통해 neural inference와 bounding-box 중심 편차의 영향을 줄인 상태에서 카메라 기하, 3D 좌표, 추적 연속성, IK, smoothing과 안전 범위를 확인한다. 실제 조류 Runtime은 YOLO26n bird class를 사용하고, Custom YOLOv8s는 Held-Out Offline Test로 평가한 팀 학습 research detector다.
 
 실물 추적에서는 top-to-bottom tilt 이동 시 반복되는 서보 hysteresis가 관찰되어 static calibration과 별도로 방향성 보상을 적용한다.
 
