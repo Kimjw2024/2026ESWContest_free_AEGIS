@@ -12,7 +12,7 @@ git lfs install
 git lfs pull
 ```
 
-Private 검토 기간에는 저장소 초대를 수락한 GitHub 계정으로 인증해야 한다. 대회 제출 전에는 저장소를 Public으로 전환하고 로그아웃/시크릿 창에서 clone URL 접근을 확인한다.
+대회 심사 기간에는 저장소를 Public으로 유지하고, 제출 전 로그아웃/시크릿 창에서 clone URL과 Git LFS 파일 접근을 확인한다.
 
 ## 2. 실행 모드
 
