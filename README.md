@@ -18,7 +18,6 @@
 ![ResNet Accuracy](https://img.shields.io/badge/ResNet--18%20Accuracy-94.76%25-EE4C2C?style=flat-square)
 ![Turret Calibration](https://img.shields.io/badge/Turret%20Calibration-20%20x%202%20points-6A5ACD?style=flat-square)
 
-**2026 임베디드SW경진대회 자유공모 부문**
 
 [개인 포트폴리오 정리 문서](docs/PORTFOLIO_KR.md) · [원본 공동 프로젝트 저장소](https://github.com/tigerjueun/2026ESWContest_free_AEGIS)
 
@@ -372,7 +371,7 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 ## 9. 저장소 구조
 
 ```text
-2026ESWContest_free_AEGIS/
+AEGIS/
 ├─ runtime/
 │  ├─ fusion_pc/
 │  │  ├─ 5_final_fusion_async.py     # 4CH Detection·3D·tracking core
@@ -418,8 +417,8 @@ AI Console은 live bird crop과 함께 다음을 표시한다.
 ## 10. 빠른 실행
 
 ```powershell
-git clone https://github.com/tigerjueun/2026ESWContest_free_AEGIS.git
-cd 2026ESWContest_free_AEGIS
+git clone https://github.com/Kimjw2024/AEGIS.git
+cd AEGIS
 git lfs install
 git lfs pull
 
